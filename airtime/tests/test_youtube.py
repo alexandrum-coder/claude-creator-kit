@@ -210,3 +210,106 @@ def test_short_duration_probed_from_file(tmp_path, capsys, monkeypatch):
     assert code == 2
     assert any("180" in e for e in out["errors"])
     assert calls[0][0] == "ffprobe" and calls[0][-1] == str(video)
+
+
+def _upload_args(tmp_path, *extra):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"real-upload")
+    meta = tmp_path / "meta.json"
+    meta.write_text(json.dumps(good_meta()))
+    run = tmp_path / "run"
+    run.mkdir(exist_ok=True)
+    return run, ["upload", "--file", str(video), "--meta", str(meta), "--publish-at", "2099-01-01 18:00",
+                 "--run-dir", str(run), "--duration", "300", *extra]
+
+
+def _fake_net(monkeypatch, problems=(), check_exc=None):
+    uploads = []
+    monkeypatch.setattr(y, "_service", lambda profile: object())
+
+    def up(service, file, body):
+        uploads.append(body)
+        return "vid%d" % len(uploads)
+
+    def check(service, vid, publish_at):
+        if check_exc:
+            raise check_exc
+        return list(problems)
+
+    monkeypatch.setattr(y, "_upload_video", up)
+    monkeypatch.setattr(y, "_check_scheduled", check)
+    return uploads
+
+
+def test_upload_writes_record_then_refuses_and_force(tmp_path, capsys, monkeypatch):
+    uploads = _fake_net(monkeypatch)
+    run, args = _upload_args(tmp_path)
+    code, out = run_cli(args, capsys)
+    assert code == 0 and out["id"] == "vid1" and out["url"] == "https://youtu.be/vid1"
+    sha = hashlib.sha256(b"real-upload").hexdigest()
+    rec = json.loads((run / "uploaded.json").read_text())
+    assert rec[sha]["id"] == "vid1" and rec[sha]["publishAt"] == out["publishAt"]
+    code, _ = run_cli(args, capsys)
+    assert code == 5 and len(uploads) == 1
+    code, out = run_cli(args + ["--force"], capsys)
+    assert code == 0 and out["id"] == "vid2" and len(uploads) == 2
+
+
+def test_upload_verify_failure_exit_2_keeps_record(tmp_path, capsys, monkeypatch):
+    _fake_net(monkeypatch, problems=["videoclipul nu e privat"])
+    run, args = _upload_args(tmp_path)
+    code, out = run_cli(args, capsys)
+    assert code == 2 and out["id"] == "vid1"
+    assert "vid1" in (run / "uploaded.json").read_text()
+
+
+def test_upload_check_raises_keeps_record_and_json(tmp_path, capsys, monkeypatch):
+    _fake_net(monkeypatch, check_exc=OSError("net down"))
+    run, args = _upload_args(tmp_path)
+    code, out = run_cli(args, capsys)
+    assert code == 2 and out["id"] == "vid1" and "error" in out
+    assert json.loads((run / "uploaded.json").read_text())[hashlib.sha256(b"real-upload").hexdigest()]["id"] == "vid1"
+
+
+def test_upload_network_error_is_json(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(y, "_service", lambda profile: object())
+
+    def boom(*a):
+        raise OSError("down")
+
+    monkeypatch.setattr(y, "_upload_video", boom)
+    run, args = _upload_args(tmp_path)
+    code, out = run_cli(args, capsys)
+    assert code == 2 and "error" in out
+    assert not (run / "uploaded.json").exists()
+
+
+def test_verify_ok_and_failure(tmp_path, capsys, monkeypatch):
+    _fake_net(monkeypatch)
+    args = ["verify", "--id", "abc", "--publish-at", "2099-01-01 18:00"]
+    code, out = run_cli(args, capsys)
+    assert code == 0 and out["ok"] and out["publishAt"] == "2099-01-01T16:00:00Z"
+    _fake_net(monkeypatch, problems=["publishAt diferă: None"])
+    code, out = run_cli(args, capsys)
+    assert code == 2 and out["errors"]
+    _fake_net(monkeypatch, check_exc=OSError("x"))
+    code, out = run_cli(args, capsys)
+    assert code == 2 and "error" in out
+
+
+def test_whoami_api_error_is_json_not_exit_3(capsys, monkeypatch):
+    import airtime_config as c
+
+    c.token_path("principal").parent.mkdir(parents=True)
+    c.token_path("principal").write_text("{}")
+    monkeypatch.setattr(y, "_service", lambda profile: object())
+
+    def boom(service):
+        raise OSError("down")
+
+    monkeypatch.setattr(y, "_channel_name", boom)
+    code, out = run_cli(["whoami"], capsys)
+    assert code == 2 and out["error"] != "neconectat"
+    monkeypatch.setattr(y, "_service", lambda profile: (_ for _ in ()).throw(y.NotConnected()))
+    code, out = run_cli(["whoami"], capsys)
+    assert code == 3

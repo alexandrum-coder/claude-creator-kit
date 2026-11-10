@@ -202,6 +202,13 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _api_error(exc: Exception, **extra) -> None:
+    """Eroare de rețea sau API ca JSON, exit 2. Fără detalii care ar putea conține secrete."""
+    status = getattr(getattr(exc, "resp", None), "status", None)
+    msg = "eroare YouTube (%s)" % status if status else "eroare de rețea sau YouTube (%s)" % type(exc).__name__
+    _emit({"error": msg, **extra}, 2)
+
+
 def _whoami(profile: str) -> None:
     if not cfg.token_path(profile).exists():
         _emit({"error": "neconectat"}, 3)
@@ -209,6 +216,8 @@ def _whoami(profile: str) -> None:
         name = _channel_name(_service(profile))
     except NotConnected:
         _emit({"error": "neconectat"}, 3)
+    except Exception as exc:
+        _api_error(exc)
     _emit({"channel": name})
 
 
@@ -269,12 +278,19 @@ def _cmd_upload(args, profile: str, prof: dict) -> None:
         service = _service(profile)
     except NotConnected:
         _emit({"error": "neconectat"}, 3)
-    vid = _upload_video(service, file, body)
-    problems = _check_scheduled(service, vid, publish_at)
+    try:
+        vid = _upload_video(service, file, body)
+    except Exception as exc:
+        _api_error(exc)
+    # înregistrarea se scrie imediat: videoclipul există deja pe YouTube
     entry = {"id": vid, "url": "https://youtu.be/" + vid, "publishAt": publish_at}
     done[sha] = entry
     run_dir.mkdir(parents=True, exist_ok=True)
     log.write_text(json.dumps(done, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        problems = _check_scheduled(service, vid, publish_at)
+    except Exception as exc:
+        _api_error(exc, errors=["videoclipul a fost urcat, dar verificarea a eșuat"], **entry)
     if problems:
         _emit({"error": "verificare eșuată", "errors": problems, **entry}, 2)
     _emit({**entry, "warnings": warnings})
@@ -307,7 +323,10 @@ def _cmd_verify(args, profile: str, prof: dict) -> None:
         _emit({"error": "neconectat"}, 3)
     except ValueError as exc:
         _emit({"error": str(exc)}, 2)
-    problems = _check_scheduled(service, args.id, publish_at)
+    try:
+        problems = _check_scheduled(service, args.id, publish_at)
+    except Exception as exc:
+        _api_error(exc)
     if problems:
         _emit({"error": "verificare eșuată", "errors": problems}, 2)
     _emit({"ok": True, "id": args.id, "publishAt": publish_at})
