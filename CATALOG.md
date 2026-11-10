@@ -1,6 +1,6 @@
 # Catalog pentru conținut fitness
 
-Ce primești după instalare ([README.md](README.md)) și pe ce să pui mâna întâi. Lista completă, cu fiecare dintre cele peste 550 de skill-uri, agenți și comenzi, e în [CATALOG-COMPLET.md](CATALOG-COMPLET.md).
+Ce primești după instalare ([README.md](README.md)) și pe ce să pui mâna întâi. Lista completă, cu fiecare dintre cele peste 570 de skill-uri, agenți și comenzi, e în [CATALOG-COMPLET.md](CATALOG-COMPLET.md).
 
 ## Trei termeni
 
@@ -32,6 +32,8 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 | `ecc:fal-ai-media` | imagini, video și voce generate de AI; cere cont fal.ai | „Generează o imagine de copertă pentru un reel despre mobilitatea șoldului.” |
 | `ecc:videodb` | caută momente în înregistrări lungi și le decupează | „Găsește în live-ul de o oră momentele în care explic tehnica la genuflexiune.” |
 | `ecc:content-engine` | transformă o filmare sau o idee în conținut pentru TikTok, YouTube Shorts, Reels | „Din clipul ăsta fă-mi un plan de 5 postări pe TikTok și Instagram.” |
+| `shorts` (claude-shorts) | din video lung: alege momentele, le taie vertical, pune subtitrări animate, exportă pentru Reels, TikTok, Shorts | „Din antrenamentul de 40 de minute din ~/Movies/live.mp4 fă-mi 5 shorts cu subtitrări.” |
+| `remotion-skills:remotion-captions` și restul Remotion | regulile oficiale pentru clipuri din cod, subtitrări, randare | „Fă un clip de 15 secunde cu cele 3 reguli ale genuflexiunii, text animat.” |
 | `creator-skills:prompt-master` | scrie prompturi bune pentru unelte video și imagine AI (Runway, Kling, Midjourney) | „Scrie-mi un prompt pentru un clip AI de 5 secunde cu o sală de forță la răsărit.” |
 
 ### Postări și texte
@@ -47,6 +49,7 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 | `brand-voice` (plugin) | învață tonul tău din postările existente, scrie ghidul de ton, verifică textele noi | „Uite 20 din postările mele; extrage-mi ghidul de ton.” |
 | `ecc:brand-voice` | profil de stil din textele tale reale, refolosit la postări și mesaje | „Scrie postarea de mâine în stilul meu.” |
 | `marketing:email-sequence` | secvențe de email pentru clienți noi sau abonați | „Secvență de 5 emailuri de bun venit pentru membrii noi.” |
+| `postiz` | programează și publică postările pe rețele, cu statistici (cont Postiz) | „Programează cele 5 postări pe Instagram, câte una pe zi, la 18:00.” |
 | `ecc:article-writing` | articole, ghiduri, newsletter | „Articol de blog despre cât de des să te antrenezi după 40 de ani.” |
 
 ### Design vizual și Canva
@@ -66,6 +69,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 
 | Skill | Ce face |
 |---|---|
+| `workout-program-designer` | programe de antrenament pe obiectiv, cu progresie și săptămâni de descărcare; bun și ca material pentru postări |
 | `marketing:competitive-brief` | analiza concurenței: alte săli, alți antrenori, ce postează, cum se poziționează |
 | `marketing:performance-report` | raport pe rezultatele unei campanii, din cifrele pe care i le dai |
 | `marketing:brand-review` | verifică un text sau o campanie față de brand |
@@ -87,6 +91,10 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `brand-voice` | Anthropic | descoperă tonul brandului din materialele tale, scrie ghidul de ton, verifică textele după el |
 | `canva` | Canva | 6 skill-uri: edit-design, bulk-create, resize-for-social-media, brand-check, get-design-feedback, implement-feedback |
 | `superpowers` | obra/superpowers | 15 skill-uri de metodă: `brainstorming` (clarifică ideea înainte de lucru), `writing-plans`, `executing-plans`, `verification-before-completion`. La proiectele mai mari, Claude îți pune întâi câteva întrebări, apoi lucrează după un plan. |
+| `remotion-skills` | remotion-dev/skills, legat direct, necopiat | 13 skill-uri oficiale Remotion pentru video din cod |
+| `workout-program-designer` | OneWave-AI/claude-skills (MIT), legat direct | un skill: programe de antrenament personalizate |
+| `postiz` | Postiz, prin catalogul Anthropic | programare și publicare pe 28+ rețele, statistici; cere cont Postiz (cloud plătit sau server propriu gratuit) |
+| `claude-shorts` | AgriciDaniel/claude-shorts (MIT), skill separat în `~/.claude/skills/shorts` | reels și shorts verticale din video lung, cu subtitrări animate; își instalează uneltele Python și Node |
 | skill-uri Anthropic | vin cu contul Claude | PowerPoint, Word, Excel, PDF, documente, cercetare aprofundată, teme vizuale |
 
 ## Skill-urile din `creator-skills`
@@ -105,14 +113,9 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `imagegen-frontend-web` | imagini de referință pentru un site |
 | `imagegen-frontend-mobile` | imagini de referință pentru o aplicație mobilă |
 
-## Opționale, încă neinstalate de script
+## Neincluse, pentru că cer abonament plătit
 
-Găsite la o căutare din noiembrie 2026. Fiecare cere un cont la serviciul respectiv. Intră în `setup-mac.sh` doar după ce Doru aprobă lista.
-
-| Unealtă | Ce face | Sursă |
-|---|---|---|
-| Postiz | programează și publică postări pe Instagram, TikTok, Facebook, YouTube, LinkedIn și altele (28+ rețele), cu statistici; are variantă gratuită, pe serverul tău | plugin `postiz` din marketplace-ul Anthropic `knowledge-work-plugins` |
-| Adobe for creativity | editare în serie de imagini și video cu Adobe Creative Cloud, adaptare pe formate de rețea | plugin `adobe-for-creativity`, același marketplace |
-| HeyGen | video cu avatar, mesaje video personalizate, traducere și dublaj | marketplace `heygen-com/skills` |
-| claude-shorts | dintr-un video lung găsește momentele bune, le taie vertical și pune subtitrări animate | GitHub `AgriciDaniel/claude-shorts` (skill, 363★) |
-| Remotion skills | regulile oficiale Remotion pentru video generat din cod | GitHub `remotion-dev/skills` (6,7k★); `ecc:remotion-video-creation` acoperă deja partea de bază |
+| Unealtă | Ce face |
+|---|---|
+| HeyGen (marketplace `heygen-com/skills`) | video cu avatar, mesaje video personalizate, traducere și dublaj |
+| Adobe for creativity (catalogul Anthropic) | editare în serie de imagini și video cu Adobe Creative Cloud |

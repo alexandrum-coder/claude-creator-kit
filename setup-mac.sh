@@ -65,7 +65,7 @@ command -v python3 >/dev/null 2>&1 && ok "python3: $(python3 --version 2>&1)" \
 command -v node >/dev/null 2>&1 && ok "node: $(node --version)" \
   || warn "Node.js lipsește: pluginul ecc are nevoie de el pentru hook-uri. Instalează-l de pe https://nodejs.org (varianta LTS)."
 command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg: prezent (montaj video)" \
-  || warn "ffmpeg lipsește: skill-ul de montaj video îl folosește. Opțional: instalează Homebrew (https://brew.sh), apoi brew install ffmpeg."
+  || warn "ffmpeg lipsește: montajul video și claude-shorts au nevoie de el. Recomandat: instalează Homebrew (https://brew.sh), apoi brew install ffmpeg."
 
 # --- 2. What to install -----------------------------------------------------
 # name|source  (source = GitHub owner/repo)
@@ -83,7 +83,15 @@ PLUGINS=(
   "brand-voice@knowledge-work-plugins"
   "canva@knowledge-work-plugins"
   "superpowers@superpowers-dev"
+  "remotion-skills@creator-kit"
+  "workout-program-designer@creator-kit"
+  "postiz@knowledge-work-plugins"
 )
+
+# claude-shorts (MIT, github.com/AgriciDaniel/claude-shorts) is not a plugin:
+# it must live in ~/.claude/skills/shorts. Pinned to a reviewed commit.
+SHORTS_REPO="https://github.com/AgriciDaniel/claude-shorts.git"
+SHORTS_SHA="a369fad9d84287edbb8fa3ab515f268e770f683b"
 
 # --- check mode -------------------------------------------------------------
 if [ "$CHECK" = "yes" ]; then
@@ -94,6 +102,7 @@ if [ "$CHECK" = "yes" ]; then
   for p in "${PLUGINS[@]}"; do
     if printf '%s\n' "$LIST" | grep -q "❯ $p\$"; then ok "$p"; else fail "$p lipsește"; missing=$((missing+1)); fi
   done
+  if [ -f "$CONF/skills/shorts/SKILL.md" ]; then ok "claude-shorts (skill)"; else fail "claude-shorts lipsește"; missing=$((missing+1)); fi
   [ "$missing" -eq 0 ] && echo "Totul e la locul lui." || echo "Lipsesc $missing pluginuri: rulează scriptul fără --check."
   exit 0
 fi
@@ -136,13 +145,49 @@ for p in "${PLUGINS[@]}"; do
   fi
 done
 
-# --- 5. Quieter ECC ---------------------------------------------------------
+# --- 5. claude-shorts ----------------------------------------------------------
+# Copies the skill into the skills folder, then runs its own setup.sh, which
+# makes a Python environment in ~/.shorts-skill (faster-whisper, mediapipe,
+# opencv, torch: about 2 GB, several minutes) and runs npm install for its
+# Remotion part. SKIP_SHORTS_DEPS=1 skips that second part (used in tests).
+echo
+echo "4. Instalez claude-shorts (clipuri verticale din video lung)"
+SHORTS_DIR="$CONF/skills/shorts"
+if [ "$DRY" = "yes" ]; then
+  echo "    [dry-run] git clone $SHORTS_REPO @ ${SHORTS_SHA:0:7} -> $SHORTS_DIR, apoi setup.sh"
+else
+  tmp="$(mktemp -d)"
+  if git clone --quiet "$SHORTS_REPO" "$tmp/shorts" && git -C "$tmp/shorts" checkout --quiet "$SHORTS_SHA"; then
+    mkdir -p "$SHORTS_DIR"
+    rsync -a --delete --exclude='.git' --exclude='node_modules' --exclude='.remotion' --exclude='*.jpeg' \
+      "$tmp/shorts/" "$SHORTS_DIR/"
+    ok "skill copiat în $SHORTS_DIR"
+    if [ "${SKIP_SHORTS_DEPS:-0}" = "1" ]; then
+      warn "dependențele claude-shorts sărite (SKIP_SHORTS_DEPS=1)"
+    elif ! command -v node >/dev/null 2>&1; then
+      warn "claude-shorts: lipsește Node.js; instalează-l, apoi rulează din nou scriptul"
+    else
+      echo "    instalez dependențele (Python + Node, durează câteva minute)..."
+      if (cd "$SHORTS_DIR" && bash setup.sh) > "$SHORTS_DIR/setup.log" 2>&1; then
+        ok "dependențe claude-shorts instalate"
+      else
+        warn "claude-shorts: dependențele n-au mers, vezi $SHORTS_DIR/setup.log"
+      fi
+    fi
+  else
+    fail "claude-shorts: nu am putut descărca $SHORTS_REPO"
+    errors=$((errors+1))
+  fi
+  rm -rf "$tmp"
+fi
+
+# --- 6. Quieter ECC ---------------------------------------------------------
 # ECC ships many developer hooks; one of them (GateGuard) stops the first file
 # write of every session to ask for "facts". For content work that only gets
 # in the way, so switch ECC to its minimal hook profile and turn GateGuard off.
 # Existing values are left alone.
 echo
-echo "4. Reglez pluginul ecc pentru lucru de conținut"
+echo "5. Reglez pluginul ecc pentru lucru de conținut"
 SETTINGS="$CONF/settings.json"
 if [ "$DRY" = "yes" ]; then
   echo "    [dry-run] în $SETTINGS: env.ECC_HOOK_PROFILE=minimal, env.ECC_GATEGUARD=off (dacă lipsesc)"
@@ -165,7 +210,7 @@ with open(path, "w", encoding="utf-8") as f:
 PY
 fi
 
-# --- 6. Done ----------------------------------------------------------------
+# --- 7. Done ----------------------------------------------------------------
 echo
 if [ "$errors" -eq 0 ]; then
   echo "Gata. Acum: închide complet aplicația Claude (Cmd+Q) și deschide-o din nou."

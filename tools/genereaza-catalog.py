@@ -29,7 +29,9 @@ OUT = os.path.join(REPO, "CATALOG-COMPLET.md")
 
 # Where each plugin comes from, as shown in the table of contents.
 PROFIL = {name: "instalat de setup-mac.sh" for name in (
-    "creator-skills", "ecc", "marketing", "design", "brand-voice", "canva", "superpowers")}
+    "creator-skills", "ecc", "marketing", "design", "brand-voice", "canva", "superpowers",
+    "remotion-skills", "workout-program-designer", "postiz")}
+PROFIL["skill-uri-separate"] = "instalat de setup-mac.sh (~/.claude/skills)"
 PROFIL["anthropic-skills"] = "vine cu contul Claude"
 
 # plugin:item -> (stars, Romanian note). 3 = core for fitness content, 2 = useful.
@@ -77,6 +79,10 @@ RELEVANTA = {
     "marketing:competitive-brief": (2, "analiză concurență (alte săli, antrenori)"),
     "marketing:performance-report": (2, "raport rezultate campanie"),
     "marketing:seo-audit": (1, "audit SEO site"),
+    "skill-uri-separate:shorts": (3, "reels/shorts verticale din video lung, cu subtitrări animate"),
+    "workout-program-designer:workout-program-designer": (3, "programe de antrenament personalizate"),
+    "remotion-skills:*": (2, "clipuri din cod cu Remotion"),
+    "postiz:*": (3, "programează și publică postări (cont Postiz)"),
     "brand-voice:*": (3, "ghid de ton din materialele existente + verificare"),
     "canva:*": (3, "creează și redimensionează design-uri în Canva (cont Canva)"),
     "design:design-critique": (2, "feedback pe un design (postare, flyer)"),
@@ -144,6 +150,10 @@ def scan_plugin(root):
             d = frontmatter(f)
             fallback = os.path.basename(os.path.dirname(f)) if kind == "skill" else os.path.basename(f)[:-3]
             items.add((kind, d.get("name") or fallback, one_line(d.get("description", ""))))
+    # A plugin made of one skill can keep its SKILL.md at the root.
+    if not items and os.path.exists(os.path.join(root, "SKILL.md")):
+        d = frontmatter(os.path.join(root, "SKILL.md"))
+        items.add(("skill", d.get("name") or os.path.basename(root), one_line(d.get("description", ""))))
     # VoltAgent ships its agents as loose .md files in the plugin root.
     if not items:
         for f in glob.glob(os.path.join(root, "*.md")):
@@ -168,6 +178,12 @@ def collect():
         items, hooks = scan_plugin(versions[0]["installPath"])
         plugins[name] = {"sursa": f"marketplace `{market}`", "versiune": versions[0].get("version", ""),
                          "items": items, "hooks": hooks}
+    loose = []
+    for f in sorted(glob.glob(os.path.join(CONF, "skills", "*", "SKILL.md"))):
+        d = frontmatter(f)
+        loose.append(("skill", d.get("name") or os.path.basename(os.path.dirname(f)), one_line(d.get("description", ""))))
+    if loose:
+        plugins["skill-uri-separate"] = {"sursa": "folderul de skill-uri", "versiune": "", "items": loose, "hooks": False}
     manifest = newest(os.path.join(APP, "skills-plugin", "*", "*", "manifest.json"))
     if manifest:
         skills = json.load(open(manifest)).get("skills", [])
@@ -190,7 +206,7 @@ def render(plugins):
         "# Catalog complet: skill-uri, agenți, comenzi",
         "",
         f"Generat automat pe {today} de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. "
-        f"{len(plugins) - (1 if 'anthropic-skills' in plugins else 0)} pluginuri instalate plus skill-urile Anthropic care vin cu contul, {total} elemente. Nu edita de mână: rulează din nou scriptul.",
+        f"{len([n for n in plugins if n not in ('anthropic-skills', 'skill-uri-separate')])} pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, {total} elemente. Nu edita de mână: rulează din nou scriptul.",
         "",
         "Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e completată de mână: "
         "★★★ esențial pentru conținut fitness (prezentări, clipuri, postări), ★★ util, ★ ocazional, gol = irelevant pentru tine. "

@@ -1,6 +1,6 @@
 # Catalog complet: skill-uri, agenți, comenzi
 
-Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 7 pluginuri instalate plus skill-urile Anthropic care vin cu contul, 561 elemente. Nu edita de mână: rulează din nou scriptul.
+Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 10 pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, 577 elemente. Nu edita de mână: rulează din nou scriptul.
 
 Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e completată de mână: ★★★ esențial pentru conținut fitness (prezentări, clipuri, postări), ★★ util, ★ ocazional, gol = irelevant pentru tine. Lista scurtă, explicată în română, e în [CATALOG.md](CATALOG.md).
 
@@ -15,7 +15,11 @@ Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e co
 | [design](#design) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 7 | 0 | 0 |  |
 | [ecc](#ecc) | marketplace `ecc` | instalat de setup-mac.sh | 314 | 71 | 98 | da |
 | [marketing](#marketing) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 8 | 0 | 0 |  |
+| [postiz](#postiz) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 1 | 0 | 0 |  |
+| [remotion-skills](#remotion-skills) | marketplace `creator-kit` | instalat de setup-mac.sh | 13 | 0 | 0 |  |
+| [skill-uri-separate](#skill-uri-separate) | folderul de skill-uri | instalat de setup-mac.sh (~/.claude/skills) | 1 | 0 | 0 |  |
 | [superpowers](#superpowers) | marketplace `superpowers-dev` | instalat de setup-mac.sh | 15 | 0 | 0 | da |
+| [workout-program-designer](#workout-program-designer) | marketplace `creator-kit` | instalat de setup-mac.sh | 1 | 0 | 0 |  |
 
 ## anthropic-skills
 
@@ -612,6 +616,42 @@ Sursă: marketplace `knowledge-work-plugins`, versiunea 1.2.0.
 | skill | `performance-report` | ★★ | **raport rezultate campanie.** Build a marketing performance report with key metrics, trend analysis, wins and misses, and prioritized optimization recommendations. Use when wrapping a campaign, when… |
 | skill | `seo-audit` | ★ | **audit SEO site.** Run a comprehensive SEO audit — keyword research, on-page analysis, content gaps, technical checks, and competitor comparison. Use when assessing a site's SEO health, wh… |
 
+## postiz
+
+Sursă: marketplace `knowledge-work-plugins`, versiunea 2.0.25.
+
+| Tip | Nume | Fitness | La ce folosește |
+|---|---|---|---|
+| skill | `postiz` | ★★★ | **programează și publică postări (cont Postiz).** Postiz is a tool to schedule social media and chat posts to 28+ channels X, LinkedIn, LinkedIn Page, Reddit, Instagram, Facebook Page, Threads, YouTube, Google My Busine… |
+
+## remotion-skills
+
+Sursă: marketplace `creator-kit`, versiunea 1af7e69a2a61.
+
+| Tip | Nume | Fitness | La ce folosește |
+|---|---|---|---|
+| skill | `remotion-best-practices` | ★★ | **clipuri din cod cu Remotion.** Router for all Remotion skills |
+| skill | `remotion-captions` | ★★ | **clipuri din cod cu Remotion.** Transcribing, displaying and animating captions |
+| skill | `remotion-create` | ★★ | **clipuri din cod cu Remotion.** Create a new Remotion video |
+| skill | `remotion-docs` | ★★ | **clipuri din cod cu Remotion.** Search Remotion documentation |
+| skill | `remotion-interactivity` | ★★ | **clipuri din cod cu Remotion.** Structure Remotion markup for interactivity |
+| skill | `remotion-license` | ★★ | **clipuri din cod cu Remotion.** Find Remotion license information, FAQs, terms, and where to buy a license. |
+| skill | `remotion-maps` | ★★ | **clipuri din cod cu Remotion.** Remotion Map animation knowledge |
+| skill | `remotion-markup` | ★★ | **clipuri din cod cu Remotion.** Content, animation and effects best practices |
+| skill | `remotion-multimedia` | ★★ | **clipuri din cod cu Remotion.** Interacting with Mediabunny |
+| skill | `remotion-render` | ★★ | **clipuri din cod cu Remotion.** Export a Remotion video |
+| skill | `remotion-saas` | ★★ | **clipuri din cod cu Remotion.** Build an app with Remotion |
+| skill | `remotion-studio` | ★★ | **clipuri din cod cu Remotion.** Preview a Remotion video |
+| skill | `remotion-upgrade` | ★★ | **clipuri din cod cu Remotion.** Upgrade Remotion, and related packages |
+
+## skill-uri-separate
+
+Sursă: folderul de skill-uri.
+
+| Tip | Nume | Fitness | La ce folosește |
+|---|---|---|---|
+| skill | `shorts` | ★★★ | **reels/shorts verticale din video lung, cu subtitrări animate.** Interactive longform-to-shortform video creator. Extracts viral-ready short clips from long videos using Claude as the orchestrator. Transcribes with faster-whisper (GPU… |
+
 ## superpowers
 
 Sursă: marketplace `superpowers-dev`, versiunea 7.0.2. Are hook-uri (rulează automat la anumite evenimente).
@@ -633,3 +673,11 @@ Sursă: marketplace `superpowers-dev`, versiunea 7.0.2. Are hook-uri (rulează a
 | skill | `verification-before-completion` |  | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before maki… |
 | skill | `writing-plans` |  | Use when you have a spec or requirements for a multi-step task, before touching code |
 | skill | `writing-skills` |  | Use when creating new skills, editing existing skills, or verifying skills work before deployment |
+
+## workout-program-designer
+
+Sursă: marketplace `creator-kit`, versiunea b2267d9171af-b9e9bcf8.
+
+| Tip | Nume | Fitness | La ce folosește |
+|---|---|---|---|
+| skill | `workout-program-designer` | ★★★ | **programe de antrenament personalizate.** Custom training plans by goal (strength, cardio, flexibility). Progressive overload programming, rest day optimization, home vs gym adaptations, deload weeks. |

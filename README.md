@@ -29,7 +29,7 @@ Apare o fereastră: apasă **Install** și așteaptă să termine. Așa primeșt
 
 Apoi instalează **Node.js**, varianta LTS, de pe <https://nodejs.org>, cu installer-ul pentru macOS. Pluginul `ecc`, cel cu skill-urile de video și prezentări, are nevoie de el.
 
-Opțional, pentru montaj video, instalează `ffmpeg`. Ai nevoie întâi de Homebrew; comanda de instalare e pe <https://brew.sh>. După ce ai Homebrew:
+Pentru montaj video și claude-shorts instalează și `ffmpeg`. Ai nevoie întâi de Homebrew; comanda de instalare e pe <https://brew.sh>. După ce ai Homebrew:
 
 ```bash
 brew install ffmpeg
@@ -60,6 +60,12 @@ Scriptul instalează:
 | `brand-voice` | ghid de ton al brandului tău și verificarea textelor după el (Anthropic) |
 | `canva` | creează, editează și redimensionează design-uri direct în contul tău Canva |
 | `superpowers` | metodă de lucru: înainte de un proiect mai mare îți pune întrebări, face un plan și apoi îl execută pas cu pas |
+| `remotion-skills` | 13 skill-uri oficiale Remotion pentru clipuri făcute din cod: intro-uri, text animat, subtitrări, randare |
+| `workout-program-designer` | programe de antrenament personalizate: obiectiv, progresie, zile de pauză, acasă sau la sală, săptămâni de descărcare |
+| `postiz` | programează și publică postări pe Instagram, TikTok, Facebook, YouTube și altele. Cere cont Postiz: varianta cloud e plătită, gratuită e doar varianta instalată pe serverul tău |
+| `claude-shorts` (skill separat) | dintr-un video lung găsește momentele bune, le taie vertical pentru Reels, TikTok și Shorts și pune subtitrări animate |
+
+claude-shorts își instalează la final uneltele de transcriere și randare (Python și Node, aproximativ 2 GB). Pasul durează câteva minute, o singură dată.
 
 Fiecare rând trebuie să se termine cu ✔. Un `!` galben e doar un avertisment, de obicei pentru `ffmpeg`. Un `✘` roșu e o eroare: rulează scriptul încă o dată, iar dacă rămâne, trimite-i lui Doru textul de pe linia respectivă.
 
