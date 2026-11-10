@@ -251,6 +251,13 @@ def _cmd_upload(args, profile: str, prof: dict) -> None:
     file = Path(args.file)
     if not file.exists():
         _emit({"error": "fișierul video nu există", "errors": [str(file)]}, 2)
+    run_dir = Path(args.run_dir)
+    log = run_dir / "uploaded.json"
+    done = json.loads(log.read_text(encoding="utf-8")) if log.exists() else {}
+    sha = _sha256(file)
+    if sha in done and not args.force:
+        _emit({"error": "fișierul a fost deja urcat", "existing": done[sha]}, 5)
+
     meta = json.loads(Path(args.meta).read_text(encoding="utf-8"))
     duration = _duration(file, args)
     errors, warnings = validate_meta(meta, duration, args.short)
@@ -262,13 +269,6 @@ def _cmd_upload(args, profile: str, prof: dict) -> None:
         errors.append(str(exc))
     if errors:
         _emit({"error": "date invalide", "errors": errors, "warnings": warnings}, 2)
-
-    run_dir = Path(args.run_dir)
-    log = run_dir / "uploaded.json"
-    done = json.loads(log.read_text(encoding="utf-8")) if log.exists() else {}
-    sha = _sha256(file)
-    if sha in done and not args.force:
-        _emit({"error": "fișierul a fost deja urcat", "existing": done[sha]}, 5)
 
     body = build_body(meta, publish_at, args.short)
     if args.dry_run:

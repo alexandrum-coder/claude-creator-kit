@@ -255,6 +255,20 @@ def test_upload_writes_record_then_refuses_and_force(tmp_path, capsys, monkeypat
     assert code == 0 and out["id"] == "vid2" and len(uploads) == 2
 
 
+def test_upload_duplicate_wins_over_past_publish_at(tmp_path, capsys, monkeypatch):
+    def boom(profile):
+        raise AssertionError("network touched")
+
+    monkeypatch.setattr(y, "_service", boom)
+    run, args = _upload_args(tmp_path)
+    sha = hashlib.sha256(b"real-upload").hexdigest()
+    (run / "uploaded.json").write_text(json.dumps({sha: {"id": "abc", "url": "u", "publishAt": "p"}}))
+    args[args.index("--publish-at") + 1] = "2000-01-01 18:00"
+    code, out = run_cli(args, capsys)
+    assert code == 5
+    assert out["existing"]["id"] == "abc"
+
+
 def test_upload_verify_failure_exit_2_keeps_record(tmp_path, capsys, monkeypatch):
     _fake_net(monkeypatch, problems=["videoclipul nu e privat"])
     run, args = _upload_args(tmp_path)

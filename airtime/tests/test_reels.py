@@ -165,3 +165,15 @@ def test_cli_missing_input_is_json_error(tmp_path, capsys):
     assert rc == 1
     lines = capsys.readouterr().out.strip().splitlines()
     assert len(lines) == 1 and "error" in json.loads(lines[0])
+
+
+def test_transcribe_cli_default_model_is_medium(tmp_path, monkeypatch, capsys):
+    seen = {}
+
+    def fake(video, out, model):
+        seen["model"] = model
+        return out
+
+    monkeypatch.setattr(reels, "transcribe", fake)
+    reels.main(["transcribe", "--video", str(tmp_path / "v.mp4"), "--out", str(tmp_path / "t.json")])
+    assert seen["model"] == "medium"

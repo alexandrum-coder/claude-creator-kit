@@ -39,12 +39,12 @@ const jobs = [
 const log = (...a) => console.error(...a);
 for (const job of jobs) {
   const inputProps = job.props;
-  const composition = await selectComposition({serveUrl, id: job.id, inputProps});
+  const composition = await selectComposition({serveUrl, id: job.id, inputProps, logLevel: 'error'});
   const outputLocation = path.join(outDir, job.file);
   const settings = job.video
     ? {codec: 'h264', pixelFormat: 'yuv420p'}
     : {codec: 'prores', proResProfile: '4444', pixelFormat: 'yuva444p10le', imageFormat: 'png'};
-  await renderMedia({composition, serveUrl, inputProps, outputLocation, ...settings});
+  await renderMedia({composition, serveUrl, inputProps, outputLocation, logLevel: 'error', ...settings});
   log(`ok ${job.file}`);
 }
 
