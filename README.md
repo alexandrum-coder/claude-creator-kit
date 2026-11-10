@@ -19,14 +19,24 @@ Deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipe�
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"
 ```
 
-Scriptul face singur tot ce lipsește:
+La pornire scriptul arată lista cu cele 11 unelte și întreabă:
+
+```
+Instalez [T]oate sau [A]leg eu? (T/a):
+```
+
+Enter instalează tot. `a` te lasă să scrii doar numerele dorite, de exemplu `1 3 6 11`. Poți rula comanda din nou oricând, ca să adaugi ce ai sărit.
+
+Fără întrebări: adaugi la sfârșitul comenzii `-- --toate` sau `-- --doar "1 3 11"`.
+
+Scriptul face singur tot ce lipsește pentru ce ai ales:
 
 1. **Unelte Apple** (`git`, `python3`): dacă lipsesc, deschide fereastra de instalare. Apeși **Install**, aștepți, apoi rulezi din nou aceeași comandă.
-2. **Homebrew, Node.js și ffmpeg**: le instalează dacă lipsesc. Homebrew îți cere o dată parola de Mac.
+2. **Homebrew, Node.js și ffmpeg**: le instalează doar dacă lipsesc și doar dacă le cere ce ai ales (ecc, remotion-skills, claude-shorts). Homebrew îți cere o dată parola de Mac.
 3. **Aplicația Claude**: o instalează dacă lipsește. Atunci scriptul se oprește și îți cere să o deschizi, să intri în cont (Pro sau Max) și să deschizi o dată tab-ul **Code**. Apoi rulezi din nou aceeași comandă.
-4. **Pluginurile și skill-urile** din tabelul de mai jos.
-5. **claude-shorts** și uneltele lui de transcriere și randare (Python și Node, aproximativ 1 GB, un minut sau două).
-6. **Reglajul pluginului `ecc`** pentru lucru de conținut.
+4. **Pluginurile alese** din tabelul de mai jos.
+5. **claude-shorts**, dacă l-ai ales, cu uneltele lui de transcriere și randare (aproximativ 1 GB, un minut sau două).
+6. **Reglajul pluginului `ecc`**, dacă l-ai ales.
 
 Comanda e sigură la rulări repetate: ce e deja instalat doar se actualizează. Durează în total 5–15 minute, în funcție de internet.
 
@@ -49,6 +59,24 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 | `workout-program-designer` | programe de antrenament personalizate: obiectiv, progresie, zile de pauză, acasă sau la sală, săptămâni de descărcare |
 | `postiz` | programează și publică postări pe Instagram, TikTok, Facebook, YouTube și altele. Cere cont Postiz: varianta cloud e plătită, gratuită e doar varianta instalată pe serverul tău |
 | `claude-shorts` (skill separat) | dintr-un video lung găsește momentele bune, le taie vertical pentru Reels, TikTok și Shorts și pune subtitrări animate |
+
+## Postiz gratuit, pe Mac
+
+Pluginul `postiz` are nevoie de un server Postiz. Varianta cloud e plătită; varianta gratuită rulează chiar pe Mac:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/postiz-local.sh)" -- install
+```
+
+Comanda instalează Colima și Docker cu Homebrew, descarcă Postiz oficial în `~/postiz`, îl pornește și deschide <http://localhost:4007>. Primul cont creat acolo devine administrator. Durează 5–10 minute prima dată.
+
+După o repornire a Mac-ului, aceeași comandă cu `-- start`. Ca să elibereze memoria: `-- stop`. Mai există `-- status` și `-- update`.
+
+De știut înainte:
+
+- **Mac-ul trebuie să fie pornit** la ora programată a postării, cu Postiz pornit. Dacă e închis, postarea nu pleacă.
+- **Cere în jur de 6 GB de RAM** cât rulează și 20 GB pe disc. Pe un Mac cu 8 GB merge greu.
+- **Fiecare rețea cere o aplicație de dezvoltator** creată de el: Meta pentru Facebook și Instagram, TikTok for Developers, Google pentru YouTube. Cheile lor se trec în `~/postiz/docker-compose.yaml`. Unele rețele acceptă doar adrese `https`, deci pentru ele e nevoie și de un tunel public. Pașii pentru fiecare rețea: [docs.postiz.com/self-host/providers](https://docs.postiz.com/self-host/providers/overview.md).
 
 ## După instalare: repornește aplicația
 
@@ -105,6 +133,7 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | Fișier | Rol |
 |---|---|
 | `setup-mac.sh` | instalarea și actualizarea, descrise mai sus |
+| `postiz-local.sh` | Postiz gratuit pe Mac (Colima + Docker) |
 | `CATALOG.md` | ce să folosești pentru prezentări, video și postări, cu exemple |
 | `CATALOG-COMPLET.md` | fiecare skill, agent și comandă instalată, generat automat |
 | `creator-skills/` | pluginul cu cele 11 skill-uri |
