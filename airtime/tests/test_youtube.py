@@ -124,7 +124,7 @@ def test_upload_refuses_duplicate(tmp_path, capsys):
     sha = hashlib.sha256(b"video-bytes").hexdigest()
     (run / "uploaded.json").write_text(json.dumps({sha: {"id": "abc", "url": "u", "publishAt": "p"}}))
     args = ["upload", "--file", str(video), "--meta", str(meta), "--publish-at", "2099-01-01 18:00",
-            "--run-dir", str(run), "--dry-run"]
+            "--run-dir", str(run), "--duration", "300", "--dry-run"]
     code, out = run_cli(args, capsys)
     assert code == 5
     assert "error" in out
@@ -138,7 +138,7 @@ def test_upload_dry_run_prints_body(tmp_path, capsys):
     run = tmp_path / "run"
     run.mkdir()
     args = ["upload", "--file", str(video), "--meta", str(meta), "--publish-at", "2099-01-01 18:00",
-            "--run-dir", str(run), "--dry-run"]
+            "--run-dir", str(run), "--duration", "300", "--dry-run"]
     code, out = run_cli(args, capsys)
     assert code == 0
     assert out["body"]["status"]["privacyStatus"] == "private"
@@ -152,7 +152,7 @@ def test_upload_invalid_meta_exit_2(tmp_path, capsys):
     meta = tmp_path / "meta.json"
     meta.write_text(json.dumps(good_meta(title="")))
     args = ["upload", "--file", str(video), "--meta", str(meta), "--publish-at", "2099-01-01 18:00",
-            "--run-dir", str(tmp_path), "--dry-run"]
+            "--run-dir", str(tmp_path), "--duration", "300", "--dry-run"]
     code, out = run_cli(args, capsys)
     assert code == 2
     assert out["errors"]
@@ -186,3 +186,27 @@ def test_find_client_picks_newest(tmp_path, capsys, monkeypatch):
     old.unlink()
     code, out = run_cli(["find-client"], capsys)
     assert code == 4
+
+
+def test_short_duration_probed_from_file(tmp_path, capsys, monkeypatch):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"x")
+    meta = tmp_path / "meta.json"
+    meta.write_text(json.dumps(good_meta(title="Reel #Shorts", chapters=[])))
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+
+        class R:
+            stdout = "200.0\n"
+
+        return R()
+
+    monkeypatch.setattr(y.subprocess, "run", fake_run)
+    args = ["upload", "--file", str(video), "--meta", str(meta), "--publish-at", "2099-01-01 18:00",
+            "--run-dir", str(tmp_path), "--short", "--dry-run"]
+    code, out = run_cli(args, capsys)
+    assert code == 2
+    assert any("180" in e for e in out["errors"])
+    assert calls[0][0] == "ffprobe" and calls[0][-1] == str(video)

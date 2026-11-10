@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -242,7 +243,7 @@ def _cmd_upload(args, profile: str, prof: dict) -> None:
     if not file.exists():
         _emit({"error": "fișierul video nu există", "errors": [str(file)]}, 2)
     meta = json.loads(Path(args.meta).read_text(encoding="utf-8"))
-    duration = _duration(meta, args)
+    duration = _duration(file, args)
     errors, warnings = validate_meta(meta, duration, args.short)
     if not args.short:
         errors += valid_chapters(meta.get("chapters") or [], duration) if meta.get("chapters") else []
@@ -279,12 +280,23 @@ def _cmd_upload(args, profile: str, prof: dict) -> None:
     _emit({**entry, "warnings": warnings})
 
 
-def _duration(meta: dict, args) -> float:
-    """Durata clipului: --duration dacă e dată, altfel ultimul capitol + 10 s, altfel 0."""
+def _probe_duration(file: Path) -> float:
+    """Durata reală din fișier, cu ffprobe (listă de argumente, fără shell)."""
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(file)],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        return float(out.strip())
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        _emit({"error": "nu am putut citi durata fișierului cu ffprobe", "errors": [str(file)]}, 2)
+
+
+def _duration(file: Path, args) -> float:
+    """--duration dacă e dată, altfel durata citită din fișier."""
     if getattr(args, "duration", None) is not None:
         return float(args.duration)
-    ch = meta.get("chapters") or []
-    return float(ch[-1]["t"]) + 10 if ch else 0.0
+    return _probe_duration(file)
 
 
 def _cmd_verify(args, profile: str, prof: dict) -> None:
