@@ -82,3 +82,86 @@ def test_step_failure_carries_name_and_stderr(tmp_path):
         reels.run_step("demo", [sys.executable, "-c", "import sys; sys.stderr.write('boom'); sys.exit(3)"])
     assert e.value.step == "demo"
     assert "boom" in str(e.value)
+
+
+def _fake_run_factory(calls, n_render, n_export):
+    def fake(step, args, cwd=None):
+        args = [str(a) for a in args]
+        calls.append((step, args))
+        if step == "snap_boundaries":
+            segs = [{"id": i, "start": 0.0, "end": 5.0} for i in range(1, 4)]
+            from pathlib import Path
+            Path(args[args.index("--output") + 1]).write_text(json.dumps({"segments": segs}))
+        elif step == "extract_clip":
+            from pathlib import Path
+            Path(args[-1]).write_bytes(b"")
+        elif step == "render":
+            from pathlib import Path
+            d = Path(args[args.index("--output-dir") + 1])
+            for i in range(1, n_render + 1):
+                (d / f"short_{i:02d}.mp4").write_bytes(b"")
+        elif step == "export":
+            from pathlib import Path
+            d = Path(args[args.index("--output-dir") + 1])
+            for i in range(1, n_export + 1):
+                (d / f"short_{i:02d}_ig.mp4").write_bytes(b"")
+        return ""
+    return fake
+
+
+def _inputs(tmp_path):
+    tr = tmp_path / "t.json"
+    tr.write_text(json.dumps({"segments": [], "captions": []}))
+    return tmp_path / "curat.mp4", tr, tmp_path / "approved.json"
+
+
+def test_build_steps_in_order(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory(calls, 3, 3))
+    curat, tr, ap = _inputs(tmp_path)
+    out = reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert [c[0] for c in calls] == ["snap_boundaries", "extract_clip", "extract_clip",
+                                     "extract_clip", "compute_reframe", "render", "export"]
+    assert calls[0][1][1].endswith("snap_boundaries.py")
+    assert "ffmpeg" == calls[1][1][0] and "copy" in calls[1][1]
+    assert "talking-head" in calls[4][1]
+    assert calls[5][1][0] == "node" and "bold" in calls[5][1]
+    assert calls[6][1][0] == "bash" and "instagram" in calls[6][1] and "--force" in calls[6][1]
+    assert len(out) == 3
+
+
+def test_build_fails_on_partial_render(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory([], 2, 3))
+    curat, tr, ap = _inputs(tmp_path)
+    with pytest.raises(reels.StepError) as e:
+        reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert e.value.step == "render"
+
+
+def test_build_fails_on_partial_export(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory([], 3, 2))
+    curat, tr, ap = _inputs(tmp_path)
+    with pytest.raises(reels.StepError) as e:
+        reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert e.value.step == "export"
+
+
+def test_build_ignores_stale_exports(tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "short_09_ig.mp4").write_bytes(b"")
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory([], 3, 3))
+    curat, tr, ap = _inputs(tmp_path)
+    res = reels.build(curat, tr, ap, "bold", out, "horizontal")
+    assert [p.name for p in res] == ["short_01_ig.mp4", "short_02_ig.mp4", "short_03_ig.mp4"]
+
+
+def test_cli_missing_input_is_json_error(tmp_path, capsys):
+    rc = reels.main(["build", "--curat", str(tmp_path / "x.mp4"),
+                     "--transcript", str(tmp_path / "nope.json"),
+                     "--approved", str(tmp_path / "nope2.json"),
+                     "--style", "bold", "--orientation", "horizontal",
+                     "--out", str(tmp_path / "o")])
+    assert rc == 1
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert len(lines) == 1 and "error" in json.loads(lines[0])

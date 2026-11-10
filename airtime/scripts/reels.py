@@ -20,6 +20,9 @@ reframe.json format (read at claude-shorts a369fad, scripts/compute_reframe.py):
     }
   }
 }
+Note: clips are cut with `ffmpeg -c copy` (as claude-shorts itself does), so a
+cut snaps to the previous keyframe and may start slightly early; Task 10
+measures the drift on real footage.
 render.mjs reads clips[name].crop, .crop_keyframes (optional) and
 .source_resolution. For a vertical source the crop is the whole frame:
 {"x": 0, "y": 0, "w": W, "h": H}.
@@ -158,6 +161,11 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation) -> lis
     clips_dir = work / "clips"
     render_dir = work / "render"
     clips_dir.mkdir(parents=True, exist_ok=True)
+    render_dir.mkdir(parents=True, exist_ok=True)
+    # stale files from an earlier run must never be mistaken for new results
+    for stale in list(clips_dir.glob("clip_*.mp4")) + list(render_dir.glob("short_*.mp4")) \
+            + list(out_dir.glob("short_*_ig.mp4")):
+        stale.unlink()
 
     snapped = work / "snapped_segments.json"
     run_step("snap_boundaries", [py, root / "scripts" / "snap_boundaries.py",
@@ -187,12 +195,15 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation) -> lis
                         "--segments", snapped, "--reframe", reframe, "--captions", captions,
                         "--clips-dir", clips_dir, "--style", style, "--output-dir", render_dir],
              cwd=root / "remotion")
+    rendered = sorted(render_dir.glob("short_*.mp4"))
+    if len(rendered) != len(segments):
+        raise StepError("render", f"expected {len(segments)} rendered reels, found {len(rendered)}")
 
     run_step("export", ["bash", root / "scripts" / "export.sh", "--input-dir", render_dir,
-                        "--platform", "instagram", "--output-dir", out_dir])
+                        "--platform", "instagram", "--output-dir", out_dir, "--force"])
     exported = sorted(out_dir.glob("short_*_ig.mp4"))
-    if not exported:
-        raise StepError("export", f"no short_*_ig.mp4 found in {out_dir}")
+    if len(exported) != len(segments):
+        raise StepError("export", f"expected {len(segments)} exported reels, found {len(exported)}")
     return exported
 
 
@@ -222,6 +233,9 @@ def main(argv=None) -> int:
             res = {"reels": [str(x) for x in paths]}
     except StepError as e:
         print(json.dumps({"error": str(e), "step": e.step}, ensure_ascii=False))
+        return 1
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
+        print(json.dumps({"error": f"{type(e).__name__}: {e}"}, ensure_ascii=False))
         return 1
     print(json.dumps(res, ensure_ascii=False))
     return 0
