@@ -95,7 +95,7 @@ def propose_cuts(words, regions, duration, clip_type, voiceover, freeze=None) ->
         cuts.append({"start": round(start, 3), "end": round(end, 3), "reason": reason,
                      "text": _text_between(words, start, end)})
 
-    if voiceover:
+    if voiceover or not words:
         for s, e in freeze or []:
             if e - s > EPS:
                 add(max(0.0, s), min(duration, e), "capat")
@@ -313,7 +313,11 @@ def cmd_propose(a) -> int:
     words = load_words(_load_json(a.transcript))
     duration = probe_duration(a.video)
     regions = classify_regions(words, duration, a.voiceover)
-    freeze = freeze_edges(a.video, duration) if a.voiceover else None
+    freeze = None
+    if a.voiceover or not words:
+        if not words and not a.voiceover:
+            print("Clipul nu are vorbire: propun doar tăieturi la capete.", file=sys.stderr)
+        freeze = freeze_edges(a.video, duration)
     cuts = propose_cuts(words, regions, duration, a.clip_type, a.voiceover, freeze=freeze)
     frames = Path(a.frames_dir)
     frames.mkdir(parents=True, exist_ok=True)

@@ -103,8 +103,10 @@ def test_voiceover_no_pause_cuts():
 
 def test_no_words_only_edges():
     regions = silences.classify_regions([], 10.0, False)
-    cuts = silences.propose_cuts([], regions, 10.0, "vorbit", False)
+    cuts = silences.propose_cuts([], regions, 10.0, "vorbit", False, freeze=[(0.0, 1.0), (9.0, 10.0)])
+    assert cuts
     assert all(c["reason"] == "capat" for c in cuts)
+    assert silences.propose_cuts([], regions, 10.0, "vorbit", False) == []
     assert silences.load_words({}) == []
     assert silences.load_words({"segments": [{"start": 0, "end": 1, "text": "x"}]}) == []
 
@@ -197,3 +199,42 @@ def test_apply_duration(tmp_path):
     assert silences.main(["remap", "--transcript", str(tr), "--map", str(mp), "--out", str(outt)]) == 0
     caps = json.loads(outt.read_text())["captions"]
     assert caps == [{"text": "x", "startMs": 5000, "endMs": 6000}]
+
+
+def _frozen_head_clip(path):
+    # 2 s frozen red head, then 3 s moving test pattern
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=red:s=160x120:r=25:d=2",
+         "-f", "lavfi", "-i", "testsrc=size=160x120:rate=25:duration=3",
+         "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0,format=yuv420p[v]", "-map", "[v]",
+         "-c:v", "libx264", str(path)],
+        check=True,
+    )
+
+
+@pytest.mark.parametrize("with_words,voiceover", [(False, False), (True, True)])
+def test_cli_propose_edge_cuts_from_freeze(tmp_path, capsys, with_words, voiceover):
+    d = tmp_path / "frozen clip ș"
+    d.mkdir()
+    video = d / "frozen.mp4"
+    _frozen_head_clip(video)
+    transcript = d / "t.json"
+    segs = []
+    if with_words:
+        segs = [{"start": 2.5, "end": 3.5, "text": "a b", "words": [
+            {"word": "a", "start": 2.5, "end": 3.0}, {"word": "b", "start": 3.0, "end": 3.5}]}]
+    transcript.write_text(json.dumps({"segments": segs, "captions": []}))
+    out = d / "cuts.json"
+    argv = ["propose", "--transcript", str(transcript), "--video", str(video), "--clip-type", "vorbit",
+            "--out", str(out), "--frames-dir", str(d / "frames")]
+    if voiceover:
+        argv.append("--voiceover")
+    assert silences.main(argv) == 0
+    cuts = json.loads(out.read_text())["cuts"]
+    assert cuts
+    assert all(c["reason"] == "capat" for c in cuts)
+    assert cuts[0]["start"] == pytest.approx(0.0, abs=0.1)
+    assert cuts[0]["end"] == pytest.approx(2.0, abs=0.2)
+    assert (d / "frames" / ("cut_%s.jpg" % cuts[0]["id"])).exists()
+    err = capsys.readouterr().err
+    assert ("nu are vorbire" in err) == (not with_words)
