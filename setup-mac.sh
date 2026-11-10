@@ -6,6 +6,10 @@
 #   bash setup-mac.sh             # install or update everything
 #   bash setup-mac.sh --dry-run   # print the commands, change nothing
 #   bash setup-mac.sh --check     # show what is installed, change nothing
+#   bash setup-mac.sh --fara-unelte  # do not install Homebrew/Node/ffmpeg
+#
+# One-line install on a new Mac (asks for the Mac password once, for Homebrew):
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"
 #
 # Safe to run again: existing marketplaces are refreshed, installed plugins
 # are updated. It touches only Claude's own config folder (~/.claude, or
@@ -18,15 +22,19 @@ set -uo pipefail
 
 DRY="no"
 CHECK="no"
+TOOLS="yes"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY="yes"; shift ;;
     --check) CHECK="yes"; shift ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    --fara-unelte) TOOLS="no"; shift ;;
+    -h|--help) echo "Vezi https://github.com/alexandrum-coder/claude-creator-kit#readme"; exit 0 ;;
     *) echo "Opțiune necunoscută: $1 (vezi --help)"; exit 2 ;;
   esac
 done
 
+# --check only reads: it never installs tools.
+[ "$CHECK" = "yes" ] && TOOLS="no"
 CONF="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 ok()   { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
@@ -46,26 +54,73 @@ find_claude() {
   printf '%s' "$found"
 }
 
-echo "1. Verific ce e instalat pe Mac"
+echo "1. Verific și instalez uneltele de bază"
+
+# git + python3 come with Apple's Command Line Tools.
+if ! xcode-select -p >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+  if [ "$DRY" = "yes" ]; then
+    echo "    [dry-run] xcode-select --install"
+  else
+    xcode-select --install >/dev/null 2>&1 || true
+    fail "Lipsesc uneltele Apple (git, python3). S-a deschis o fereastră: apasă Install, așteaptă să termine, apoi rulează din nou aceeași comandă."
+    exit 1
+  fi
+fi
+ok "git: $(git --version 2>/dev/null)"
+command -v python3 >/dev/null 2>&1 && ok "python3: $(python3 --version 2>&1)" || warn "python3 lipsește"
+
+load_brew() {
+  local b
+  for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [ -x "$b" ] && eval "$("$b" shellenv)" && return 0
+  done
+  command -v brew >/dev/null 2>&1
+}
+
+need=()
+command -v node >/dev/null 2>&1 || need+=(node)
+command -v ffmpeg >/dev/null 2>&1 || need+=(ffmpeg)
+app_missing="no"
+[ -d "/Applications/Claude.app" ] || [ -d "$HOME/Applications/Claude.app" ] || app_missing="yes"
+
+if [ "$TOOLS" = "yes" ] && { [ ${#need[@]} -gt 0 ] || [ "$app_missing" = "yes" ]; }; then
+  if ! load_brew; then
+    if [ "$DRY" = "yes" ]; then
+      echo "    [dry-run] instalez Homebrew (https://brew.sh)"
+    else
+      echo "    Instalez Homebrew, managerul de aplicații pentru Mac. Îți cere parola de Mac."
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+      load_brew || { fail "Homebrew nu s-a instalat. Instalează-l de pe https://brew.sh, apoi rulează din nou."; exit 1; }
+    fi
+  fi
+  if [ ${#need[@]} -gt 0 ]; then
+    if [ "$DRY" = "yes" ]; then
+      echo "    [dry-run] brew install ${need[*]}"
+    else
+      echo "    Instalez: ${need[*]}"
+      brew install "${need[@]}" >/dev/null 2>&1 || warn "brew install ${need[*]} a eșuat"
+    fi
+  fi
+  if [ "$app_missing" = "yes" ]; then
+    if [ "$DRY" = "yes" ]; then
+      echo "    [dry-run] brew install --cask claude"
+    else
+      echo "    Instalez aplicația Claude"
+      brew install --cask claude >/dev/null 2>&1 || warn "aplicația Claude nu s-a instalat; descarc-o de pe https://claude.ai/download"
+    fi
+  fi
+fi
+command -v node >/dev/null 2>&1 && ok "node: $(node --version)" \
+  || warn "Node.js lipsește: ecc și claude-shorts au nevoie de el (https://nodejs.org)."
+command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg: prezent" \
+  || warn "ffmpeg lipsește: montajul video și claude-shorts au nevoie de el (brew install ffmpeg)."
+
 CLAUDE="$(find_claude)"
 if [ -z "$CLAUDE" ]; then
-  fail "Nu găsesc Claude. Instalează aplicația Claude de pe https://claude.ai/download, deschide-o o dată, intră în tab-ul Code, apoi rulează din nou scriptul."
+  fail "Aplicația Claude nu e pregătită. Deschide-o, intră în cont, deschide o dată tab-ul Code, apoi rulează din nou aceeași comandă."
   exit 1
 fi
 ok "Claude: $("$CLAUDE" --version 2>/dev/null | head -1)"
-
-if xcode-select -p >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
-  ok "git: $(git --version)"
-else
-  fail "Lipsește git. Rulează: xcode-select --install  (apare o fereastră, apasă Install), apoi rulează din nou scriptul."
-  exit 1
-fi
-command -v python3 >/dev/null 2>&1 && ok "python3: $(python3 --version 2>&1)" \
-  || warn "python3 lipsește: unele skill-uri nu vor merge. Vine cu xcode-select --install."
-command -v node >/dev/null 2>&1 && ok "node: $(node --version)" \
-  || warn "Node.js lipsește: pluginul ecc are nevoie de el pentru hook-uri. Instalează-l de pe https://nodejs.org (varianta LTS)."
-command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg: prezent (montaj video)" \
-  || warn "ffmpeg lipsește: montajul video și claude-shorts au nevoie de el. Recomandat: instalează Homebrew (https://brew.sh), apoi brew install ffmpeg."
 
 # --- 2. What to install -----------------------------------------------------
 # name|source  (source = GitHub owner/repo)

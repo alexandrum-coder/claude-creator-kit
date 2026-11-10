@@ -11,45 +11,30 @@ Durează cam 15 minute. La final ai în aplicația Claude, în tab-ul **Code**, 
 - 2–3 GB liberi pe disc;
 - acces de administrator pe Mac, pentru instalarea uneltelor de bază.
 
-## Pasul 1. Aplicația Claude
+## Instalare rapidă
 
-1. Descarcă aplicația de pe <https://claude.ai/download> și instaleaz-o.
-2. Deschide-o, intră în cont, apoi deschide o dată tab-ul **Code**. La prima deschidere aplicația își descarcă motorul Claude Code, iar scriptul de la pasul 4 are nevoie de el.
-3. În **Settings → Capabilities**, verifică să fie pornite skill-urile Anthropic (PowerPoint, Word, Excel, PDF). Ele vin cu contul și nu se instalează separat.
-
-## Pasul 2. Uneltele de bază
-
-Deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter) și rulează:
+Deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipește comanda de mai jos și apasă Enter:
 
 ```bash
-xcode-select --install
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"
 ```
 
-Apare o fereastră: apasă **Install** și așteaptă să termine. Așa primești `git` și `python3`. Dacă îți spune că sunt deja instalate, treci mai departe.
+Scriptul face singur tot ce lipsește:
 
-Apoi instalează **Node.js**, varianta LTS, de pe <https://nodejs.org>, cu installer-ul pentru macOS. Pluginul `ecc`, cel cu skill-urile de video și prezentări, are nevoie de el.
+1. **Unelte Apple** (`git`, `python3`): dacă lipsesc, deschide fereastra de instalare. Apeși **Install**, aștepți, apoi rulezi din nou aceeași comandă.
+2. **Homebrew, Node.js și ffmpeg**: le instalează dacă lipsesc. Homebrew îți cere o dată parola de Mac.
+3. **Aplicația Claude**: o instalează dacă lipsește. Atunci scriptul se oprește și îți cere să o deschizi, să intri în cont (Pro sau Max) și să deschizi o dată tab-ul **Code**. Apoi rulezi din nou aceeași comandă.
+4. **Pluginurile și skill-urile** din tabelul de mai jos.
+5. **claude-shorts** și uneltele lui de transcriere și randare (Python și Node, aproximativ 1 GB, un minut sau două).
+6. **Reglajul pluginului `ecc`** pentru lucru de conținut.
 
-Pentru montaj video și claude-shorts instalează și `ffmpeg`. Ai nevoie întâi de Homebrew; comanda de instalare e pe <https://brew.sh>. După ce ai Homebrew:
+Comanda e sigură la rulări repetate: ce e deja instalat doar se actualizează. Durează în total 5–15 minute, în funcție de internet.
 
-```bash
-brew install ffmpeg
-```
+Fiecare rând trebuie să se termine cu ✔. Un `!` galben e un avertisment. Un `✘` roșu e o eroare: rulezi din nou comanda, iar dacă rămâne, trimiți mai departe textul de pe linia respectivă.
 
-## Pasul 3. Descarcă scriptul de instalare
+Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l și rulează-l cu `--fara-unelte`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh -o ~/setup-mac.sh
-```
-
-Scriptul e public, în acest repo. Dacă vrei să vezi ce face înainte să-l rulezi, deschide-l cu `open -e ~/setup-mac.sh`. Modifică doar folderul de configurare Claude (`~/.claude`) și face o copie de siguranță a fișierului `settings.json` înainte să-l atingă.
-
-## Pasul 4. Rulează instalarea
-
-```bash
-bash ~/setup-mac.sh
-```
-
-Scriptul instalează:
+### Ce instalează
 
 | Plugin | Pentru ce |
 |---|---|
@@ -65,27 +50,23 @@ Scriptul instalează:
 | `postiz` | programează și publică postări pe Instagram, TikTok, Facebook, YouTube și altele. Cere cont Postiz: varianta cloud e plătită, gratuită e doar varianta instalată pe serverul tău |
 | `claude-shorts` (skill separat) | dintr-un video lung găsește momentele bune, le taie vertical pentru Reels, TikTok și Shorts și pune subtitrări animate |
 
-claude-shorts își instalează la final uneltele de transcriere și randare (Python și Node, aproximativ 1 GB). Pasul durează un minut sau două, o singură dată. Pe Mac scriptul lui recomandă `sudo apt install ffmpeg`; ignoră mesajul și folosește `brew install ffmpeg`.
-
-Fiecare rând trebuie să se termine cu ✔. Un `!` galben e doar un avertisment, de obicei pentru `ffmpeg`. Un `✘` roșu e o eroare: rulează scriptul încă o dată, iar dacă rămâne, trimite-i lui Doru textul de pe linia respectivă.
-
-## Pasul 5. Repornește aplicația
+## După instalare: repornește aplicația
 
 Închide aplicația Claude complet, cu **Cmd+Q**; o fereastră închisă nu ajunge. Apoi deschide-o din nou. Un chat nou nu încarcă pluginurile noi, doar repornirea completă.
 
-## Pasul 6. Verifică
+## Verifică
 
 În Terminal:
 
 ```bash
-bash ~/setup-mac.sh --check
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --check
 ```
 
 Trebuie să vezi „Totul e la locul lui.”
 
 În aplicație, în tab-ul Code, scrie `/` și caută `humanizer` sau `video-editing`. Dacă apar în listă, instalarea a mers.
 
-## Pasul 7. Conectează Canva
+## Conectează Canva
 
 Pluginul `canva` lucrează direct în contul tău Canva. Prima dată când îi ceri ceva legat de Canva, Claude îți cere să autorizezi conexiunea; urmezi pașii din fereastra Canva care se deschide. Fără autorizare, celelalte skill-uri merg normal, doar cele de Canva nu.
 
@@ -105,11 +86,7 @@ Mai multe exemple, pe categorii, sunt în [CATALOG.md](CATALOG.md).
 
 ## Actualizări
 
-Când apar skill-uri noi în kit, rulezi din nou:
-
-```bash
-bash ~/setup-mac.sh
-```
+Când apar skill-uri noi în kit, rulezi din nou comanda de instalare rapidă.
 
 apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu șterge nimic.
 
