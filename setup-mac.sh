@@ -148,7 +148,7 @@ done
 # --- 5. claude-shorts ----------------------------------------------------------
 # Copies the skill into the skills folder, then runs its own setup.sh, which
 # makes a Python environment in ~/.shorts-skill (faster-whisper, mediapipe,
-# opencv, torch: about 2 GB, several minutes) and runs npm install for its
+# opencv, torch: about 1 GB, several minutes) and runs npm install for its
 # Remotion part. SKIP_SHORTS_DEPS=1 skips that second part (used in tests).
 echo
 echo "4. Instalez claude-shorts (clipuri verticale din video lung)"
