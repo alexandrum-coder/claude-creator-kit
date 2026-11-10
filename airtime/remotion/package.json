@@ -1,0 +1,19 @@
+{
+  "name": "airtime-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.422",
+    "@remotion/cli": "^4.0.422",
+    "@remotion/renderer": "^4.0.422",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.422",
+    "zod": "^3.22.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.5.0"
+  }
+}
