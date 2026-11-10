@@ -1,0 +1,47 @@
+{
+  "segments": [
+    {
+      "start": 1.0, "end": 3.0, "text": "Bună ziua azi facem genuflexiuni",
+      "words": [
+        {"word": "Bună", "start": 1.0, "end": 1.4},
+        {"word": "ziua", "start": 1.5, "end": 1.9},
+        {"word": "azi", "start": 2.0, "end": 2.3},
+        {"word": "facem", "start": 2.4, "end": 2.7},
+        {"word": "genuflexiuni", "start": 2.8, "end": 3.0}
+      ]
+    },
+    {
+      "start": 3.6, "end": 6.0, "text": "Bună ziua, azi începem genuflexiunile corect",
+      "words": [
+        {"word": "Bună", "start": 3.6, "end": 4.0},
+        {"word": "ziua,", "start": 4.1, "end": 4.5},
+        {"word": "azi", "start": 4.6, "end": 4.8},
+        {"word": "începem", "start": 4.9, "end": 5.3},
+        {"word": "genuflexiunile", "start": 5.4, "end": 5.7},
+        {"word": "corect", "start": 5.8, "end": 6.0}
+      ]
+    },
+    {
+      "start": 7.5, "end": 9.0, "text": "Ținem spatele drept",
+      "words": [
+        {"word": "Ținem", "start": 7.5, "end": 7.9},
+        {"word": "spatele", "start": 8.0, "end": 8.5},
+        {"word": "drept", "start": 8.6, "end": 9.0}
+      ]
+    },
+    {
+      "start": 21.0, "end": 22.5, "text": "Gata pentru azi",
+      "words": [
+        {"word": "Gata", "start": 21.0, "end": 21.5},
+        {"word": "pentru", "start": 21.6, "end": 22.0},
+        {"word": "azi", "start": 22.1, "end": 22.5}
+      ]
+    }
+  ],
+  "captions": [
+    {"text": "Bună ziua azi facem genuflexiuni", "startMs": 1000, "endMs": 3000},
+    {"text": "Bună ziua, azi începem genuflexiunile corect", "startMs": 3600, "endMs": 6000},
+    {"text": "Ținem spatele drept", "startMs": 7500, "endMs": 9000},
+    {"text": "Gata pentru azi", "startMs": 21000, "endMs": 22500}
+  ]
+}

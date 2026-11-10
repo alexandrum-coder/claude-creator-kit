@@ -1,0 +1,199 @@
+from __future__ import annotations
+
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+import silences
+
+FIXTURE = Path(__file__).parent / "fixtures" / "transcript_retake.json"
+DURATION = 24.0
+
+
+def _words():
+    return silences.load_words(json.loads(FIXTURE.read_text(encoding="utf-8")))
+
+
+def _w(text, start, end):
+    return {"text": text, "start": start, "end": end}
+
+
+def _overlaps(a, b):
+    return a["start"] < b["end"] and b["start"] < a["end"]
+
+
+def test_load_words_normalizes_text():
+    words = _words()
+    assert words[0] == {"text": "Bună", "start": 1.0, "end": 1.4}
+    assert len(words) == 17
+
+
+def test_gap_over_4s_is_demo():
+    regions = silences.classify_regions(_words(), DURATION, voiceover=False)
+    demos = [r for r in regions if r["kind"] == "demo"]
+    assert len(demos) == 1
+    assert demos[0]["start"] == pytest.approx(9.0)
+    assert demos[0]["end"] == pytest.approx(21.0)
+    # regions tile the clip
+    assert regions[0]["start"] == 0.0 and regions[-1]["end"] == DURATION
+
+
+def test_no_cut_inside_demo():
+    words = _words()
+    regions = silences.classify_regions(words, DURATION, voiceover=False)
+    demos = [r for r in regions if r["kind"] == "demo"]
+    for clip_type in ("vorbit", "culise", "demonstratii"):
+        cuts = silences.propose_cuts(words, regions, DURATION, clip_type, False)
+        assert cuts
+        for c in cuts:
+            assert not any(_overlaps(c, d) for d in demos), (clip_type, c)
+
+
+def test_pause_threshold_by_clip_type():
+    words = _words()
+    regions = silences.classify_regions(words, DURATION, False)
+    for clip_type in ("vorbit", "demonstratii"):
+        pauses = [c for c in silences.propose_cuts(words, regions, DURATION, clip_type, False)
+                  if c["reason"] == "pauza"]
+        assert len(pauses) == 1
+        assert pauses[0]["start"] == pytest.approx(6.25)
+        assert pauses[0]["end"] == pytest.approx(7.25)
+
+    short = [_w("a", 1.0, 1.4), _w("b", 2.3, 2.7), _w("c", 2.8, 3.0)]  # 0.9 s gap
+    regions = silences.classify_regions(short, 6.0, False)
+    by_type = {
+        t: [c for c in silences.propose_cuts(short, regions, 6.0, t, False) if c["reason"] == "pauza"]
+        for t in ("vorbit", "culise", "demonstratii")
+    }
+    assert len(by_type["vorbit"]) == 1
+    assert by_type["culise"] == [] and by_type["demonstratii"] == []
+
+
+def test_retake_detected():
+    words = _words()
+    regions = silences.classify_regions(words, DURATION, False)
+    cuts = silences.propose_cuts(words, regions, DURATION, "vorbit", False)
+    retakes = [c for c in cuts if c["reason"] == "reluare"]
+    assert len(retakes) == 1
+    assert retakes[0]["start"] == pytest.approx(1.0)
+    assert retakes[0]["end"] == pytest.approx(3.6)
+    assert retakes[0]["text"].startswith("Bună ziua azi facem")
+
+
+def test_edges_proposed():
+    words = _words()
+    regions = silences.classify_regions(words, DURATION, False)
+    edges = [c for c in silences.propose_cuts(words, regions, DURATION, "vorbit", False)
+             if c["reason"] == "capat"]
+    assert [(round(c["start"], 3), round(c["end"], 3)) for c in edges] == [(0.0, 0.5), (23.5, 24.0)]
+
+
+def test_voiceover_no_pause_cuts():
+    words = _words()
+    regions = silences.classify_regions(words, DURATION, voiceover=True)
+    assert [r["kind"] for r in regions] == ["demo"]
+    cuts = silences.propose_cuts(words, regions, DURATION, "vorbit", True,
+                                 freeze=[(0.0, 1.0), (23.0, 24.0)])
+    assert len(cuts) == 2
+    assert {c["reason"] for c in cuts} == {"capat"}
+    assert silences.propose_cuts(words, regions, DURATION, "vorbit", True) == []
+
+
+def test_no_words_only_edges():
+    regions = silences.classify_regions([], 10.0, False)
+    cuts = silences.propose_cuts([], regions, 10.0, "vorbit", False)
+    assert all(c["reason"] == "capat" for c in cuts)
+    assert silences.load_words({}) == []
+    assert silences.load_words({"segments": [{"start": 0, "end": 1, "text": "x"}]}) == []
+
+
+def test_parse_freeze_edges():
+    err = (
+        "[freezedetect @ 0x1] lavfi.freezedetect.freeze_start: 0\n"
+        "[freezedetect @ 0x1] lavfi.freezedetect.freeze_duration: 1.5\n"
+        "[freezedetect @ 0x1] lavfi.freezedetect.freeze_end: 1.5\n"
+        "[freezedetect @ 0x1] lavfi.freezedetect.freeze_start: 8.5\n"
+    )
+    assert silences.parse_freeze_edges(err, 10.0) == [(0.0, 1.5), (8.5, 10.0)]
+    # a freeze in the middle is not an edge
+    mid = ("freeze_start: 3\nfreeze_duration: 2\nfreeze_end: 5\n")
+    assert silences.parse_freeze_edges(mid, 10.0) == []
+
+
+def test_keep_and_remap_roundtrip():
+    cuts = [{"start": 1.0, "end": 3.6}, {"start": 6.25, "end": 7.25}]
+    keep = silences.keep_intervals(DURATION, cuts)
+    assert keep == [(0.0, 1.0), (3.6, 6.25), (7.25, 24.0)]
+    assert silences.remap(2.0, keep) is None
+    for t, removed in ((3.7, 2.6), (7.5, 3.6), (0.5, 0.0), (22.0, 3.6)):
+        assert silences.remap(t, keep) == pytest.approx(t - removed, abs=0.001)
+
+
+def test_remap_transcript_drops_cut_material():
+    transcript = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    keep = silences.keep_intervals(DURATION, [{"start": 1.0, "end": 3.6}])
+    out = silences.remap_transcript(transcript, keep)
+    assert len(out["segments"]) == 3
+    first = out["segments"][0]
+    assert first["start"] == pytest.approx(1.0)
+    assert first["words"][0]["start"] == pytest.approx(1.0)
+    assert out["captions"][0]["startMs"] == 1000
+    assert out["captions"][0]["text"].startswith("Bună ziua, azi începem")
+    assert len(out["captions"]) == 3
+
+
+def test_cli_propose_and_apply(tmp_path):
+    d = tmp_path / "clip cu spații și diacritice ăî"
+    d.mkdir()
+    video = d / "sursă.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=25:duration=10",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=10", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-shortest", str(video)],
+        check=True,
+    )
+    transcript = d / "t.json"
+    transcript.write_text(json.dumps({"segments": [{"start": 1, "end": 2, "text": "a b", "words": [
+        {"word": "a", "start": 1.0, "end": 1.5}, {"word": "b", "start": 3.5, "end": 4.0}]}], "captions": []}))
+    out = d / "cuts-propuse.json"
+    frames = d / "frames"
+    assert silences.main(["propose", "--transcript", str(transcript), "--video", str(video),
+                          "--clip-type", "vorbit", "--out", str(out), "--frames-dir", str(frames)]) == 0
+    proposed = json.loads(out.read_text())
+    assert set(proposed) == {"duration", "regions", "cuts"}
+    assert proposed["cuts"]
+    for c in proposed["cuts"]:
+        assert (frames / ("cut_%s.jpg" % c["id"])).stat().st_size > 0
+
+
+def test_apply_duration(tmp_path):
+    d = tmp_path / "clip ț"
+    d.mkdir()
+    video = d / "in.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=25:duration=10",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=10", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-shortest", str(video)],
+        check=True,
+    )
+    cuts = d / "cuts-aprobate.json"
+    cuts.write_text(json.dumps({"cuts": [{"id": 1, "start": 4.0, "end": 6.0, "reason": "pauza", "text": ""}]}))
+    out, mp = d / "curat.mp4", d / "map.json"
+    assert silences.main(["apply", "--video", str(video), "--cuts", str(cuts), "--out", str(out),
+                          "--map", str(mp)]) == 0
+    dur = float(subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(out)],
+        check=True, capture_output=True, text=True).stdout)
+    assert dur == pytest.approx(8.0, abs=0.1)
+    m = json.loads(mp.read_text())
+    assert m["keep"] == [[0.0, 4.0], [6.0, m["duration"]]]
+
+    tr = d / "t.json"
+    tr.write_text(json.dumps({"segments": [], "captions": [
+        {"text": "x", "startMs": 7000, "endMs": 8000}, {"text": "y", "startMs": 4500, "endMs": 5500}]}))
+    outt = d / "tc.json"
+    assert silences.main(["remap", "--transcript", str(tr), "--map", str(mp), "--out", str(outt)]) == 0
+    caps = json.loads(outt.read_text())["captions"]
+    assert caps == [{"text": "x", "startMs": 5000, "endMs": 6000}]
