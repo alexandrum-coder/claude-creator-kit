@@ -1,0 +1,8 @@
+{
+  "name": "creator-skills",
+  "version": "1.0.0",
+  "description": "Skills for content creators: humanizer, brandkit, theme-factory, prompt-master, notebooklm, skill-router, plan-taskmanager, compact-handoff, full-output-enforcement, imagegen-frontend-web, imagegen-frontend-mobile.",
+  "author": {
+    "name": "Doru Maican"
+  }
+}

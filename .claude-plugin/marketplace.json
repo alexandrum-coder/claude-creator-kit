@@ -1,0 +1,17 @@
+{
+  "name": "creator-kit",
+  "owner": {
+    "name": "Doru Maican"
+  },
+  "metadata": {
+    "description": "Claude skills for content work: presentations, social media posts, brand, prompts for image and video AI.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "creator-skills",
+      "source": "./creator-skills",
+      "description": "11 skills for content creators: humanizer, brandkit, theme-factory, prompt-master, notebooklm, skill-router, plan-taskmanager, compact-handoff, full-output-enforcement, imagegen-frontend-web, imagegen-frontend-mobile."
+    }
+  ]
+}
