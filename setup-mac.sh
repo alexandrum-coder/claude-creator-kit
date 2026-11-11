@@ -57,11 +57,12 @@ has_tty() { [ -r /dev/tty ] && { : < /dev/tty; } 2>/dev/null; }
 #   kind plugin: one plugin; members = its skills when known in advance
 #   kind shorts: the claude-shorts skill; kind mcp: the transcript MCP server
 # prompt-agent needs prompt-master; both are members of this group.
-CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm personal-assistant plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights"
+# Dependencies of an item are not a catalog field: requires_of() lists them.
+CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm personal-assistant plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights browser-harness"
 MK_SKILLS="social video content-strategy copy-editing"
 REMOTION_SKILLS="remotion-best-practices remotion-captions remotion-create remotion-docs remotion-interactivity remotion-license remotion-maps remotion-markup remotion-multimedia remotion-render remotion-saas remotion-studio remotion-upgrade"
 ITEMS=(
-  "creator@creator-kit|creator-skills|14 skill-uri: texte naturale, brand, SEO pe rețele, podcasturi|-|group|$CREATOR_SKILLS"
+  "creator@creator-kit|creator-skills|15 skill-uri: texte naturale, brand, SEO pe rețele, podcasturi|-|group|$CREATOR_SKILLS"
   "ecc@ecc|ecc|montaj video, prezentări animate, conținut pe rețele|node ffmpeg|plugin|"
   "marketing@knowledge-work-plugins|marketing|postări, campanii, emailuri, analiza concurenței|-|plugin|"
   "design@knowledge-work-plugins|design|feedback pe postări și flyere|-|plugin|"
@@ -74,9 +75,26 @@ ITEMS=(
   "shorts|claude-shorts|reels și shorts verticale din video lung, cu subtitrări (~1 GB)|node ffmpeg|shorts|shorts"
   "mk@creator-kit|marketingskills|ce postezi, scripturi de reels, strategie, corectură|-|group|$MK_SKILLS"
   "youtube-transcript|youtube-transcript (MCP)|transcrierea clipurilor YouTube, fără cheie API|uv|mcp|"
+  "airtime@creator-kit|airtime|montaj + YouTube + reels Instagram dintr-un singur clip|node ffmpeg uv|plugin|airtime"
 )
 N=${#ITEMS[@]}
 field() { printf '%s' "${ITEMS[$1]}" | cut -d'|' -f"$2"; }
+# What an item needs before it: ids of other items (installed whole), or
+# skill:NAME for one skill of the creator-kit (only that skill, never the group).
+# Expanded into the selection before TODO is computed, without duplicates.
+requires_of() {
+  case "$1" in
+    airtime@creator-kit) printf '%s' "skill:social-seo skill:brandkit skill:browser-harness ecc@ecc marketing@knowledge-work-plugins brand-voice@knowledge-work-plugins remotion-skills@creator-kit shorts" ;;
+  esac
+}
+item_index() {   # item id -> catalog index
+  local j=0
+  while [ $j -lt $N ]; do
+    [ "$(field $j 1)" = "$1" ] && { echo $j; return 0; }
+    j=$((j+1))
+  done
+  return 1
+}
 market_source() {
   case "$1" in
     creator-kit) printf '%s' "$KIT_SRC" ;;
@@ -274,6 +292,21 @@ label_status() {
   esac
 }
 
+# Where Claude put an installed plugin ("plugin@market"); empty if not installed.
+plugin_path() {
+  CONF="$CONF" python3 - "$1" <<'PY'
+import json, os, sys
+try:
+    reg = json.load(open(os.path.join(os.environ["CONF"], "plugins", "installed_plugins.json"))).get("plugins", {})
+except (OSError, ValueError):
+    sys.exit(0)
+for inst in reg.get(sys.argv[1]) or []:
+    if inst.get("installPath"):
+        print(inst["installPath"])
+        break
+PY
+}
+
 scan
 
 # --- Check mode -------------------------------------------------------------
@@ -289,6 +322,12 @@ if [ "$CHECK" = "yes" ]; then
     esac
     i=$((i+1))
   done
+  AT="$(plugin_path airtime@creator-kit)"
+  if [ -n "$AT" ] && [ -f "$AT/scripts/check.sh" ]; then
+    echo
+    echo "AirTime:"
+    bash "$AT/scripts/check.sh" --quick | sed 's/^/  /'
+  fi
   exit 0
 fi
 
@@ -319,6 +358,7 @@ if [ -z "$MODE" ]; then
 fi
 
 if [ "$MODE" = "toate" ]; then
+  # Every item, in catalog order; requires_of() adds nothing new then.
   i=0; while [ $i -lt $N ]; do SEL+=($i); i=$((i+1)); done
 else
   for n in $(printf '%s' "$PICK" | tr ',' ' '); do
@@ -327,11 +367,38 @@ else
   done
 fi
 
-# Keep only what has something to do; "ok" items are already there.
+# Add what the chosen items need, before them and without duplicates.
+# Entries are catalog indexes, or "skill:NAME" for a single creator-kit skill.
+EXP=(); SEEN=" "
+add_tok() { case "$SEEN" in *" $1 "*) return 0 ;; esac; SEEN="$SEEN$1 "; EXP+=("$1"); }
+for i in ${SEL[@]+"${SEL[@]}"}; do
+  for r in $(requires_of "$(field $i 1)"); do
+    case "$r" in
+      skill:*)
+        # Already covered when the whole group that holds this skill is chosen.
+        covered="no"
+        for g in ${SEL[@]+"${SEL[@]}"}; do
+          [ "$(field $g 5)" = "group" ] && [ "$(field $g 1)" = "creator@creator-kit" ] \
+            && case " $(field $g 6) " in *" ${r#skill:} "*) covered="yes" ;; esac
+        done
+        [ "$covered" = "yes" ] || add_tok "$r" ;;
+      *) if j="$(item_index "$r")"; then add_tok "$j"; else warn "$(field $i 2): nu găsesc în listă „$r”"; fi ;;
+    esac
+  done
+  add_tok "$i"
+done
+SEL=(${EXP[@]+"${EXP[@]}"})
+
+# Keep only what has something to do; what is already there is skipped.
 TODO=()
 for i in ${SEL[@]+"${SEL[@]}"}; do
-  [ "$(status $i)" = "ok" ] && continue
-  TODO+=($i)
+  case "$i" in
+    skill:*)
+      n="${i#skill:}"
+      if ! have I "$n@creator-kit" && { have S "$n" || have A "$n"; }; then continue; fi ;;
+    *) [ "$(status $i)" = "ok" ] && continue ;;
+  esac
+  TODO+=("$i")
 done
 if [ ${#TODO[@]} -eq 0 ]; then
   [ ${#SEL[@]} -eq 0 ] && { fail "Nu ai ales nimic. Rulează din nou comanda."; exit 1; }
@@ -341,6 +408,7 @@ fi
 echo "Instalez sau actualizez:"
 WANT_NODE="no"; WANT_FFMPEG="no"; WANT_UV="no"; WANT_YTDLP="no"
 for i in "${TODO[@]}"; do
+  case "$i" in skill:*) echo "  • ${i#skill:}"; continue ;; esac
   echo "  • $(field $i 2)"
   case " $(field $i 4) " in *" node "*) WANT_NODE="yes" ;; esac
   case " $(field $i 4) " in *" ffmpeg "*) WANT_FFMPEG="yes" ;; esac
@@ -442,20 +510,85 @@ install_plugin() {   # $1 plugin@market, $2 label
 
 echo
 echo "2. Instalare"
-errors=0; ECC_DONE="no"
+install_creator_skill() {   # $1 skill name: one plugin of the creator-kit
+  local m="$1"
+  if have I "$m@creator-kit"; then run plugin update "$m@creator-kit" >/dev/null 2>&1; ok "$m (actualizat)"
+  elif have S "$m" || have A "$m"; then ok "$m: îl ai deja, sar peste"
+  else install_plugin "$m@creator-kit" "$m"; fi
+}
+
+# AirTime's own part, after its plugin is in: a Python environment for the YouTube
+# libraries, the intro template with its npm packages, and the browser tool.
+# SKIP_AIRTIME_DEPS=1 skips the heavy downloads (venv packages, npm, uv); for tests.
+airtime_post() {
+  local AH="${AIRTIME_HOME:-$HOME/.airtime}" src
+  echo
+  echo "3. AirTime: mediul de lucru"
+  if [ "$DRY" = "yes" ]; then
+    echo "    [dry-run] airtime: venv $AH/venv cu scripts/requirements.txt, șablonul remotion în $AH/remotion + npm install, browser-harness"
+    return 0
+  fi
+  src="$(plugin_path airtime@creator-kit)"
+  if [ -z "$src" ] || [ ! -d "$src" ]; then
+    warn "airtime: nu găsesc pluginul instalat, sar peste mediul de lucru"; errors=$((errors+1)); return 0
+  fi
+  mkdir -p "$AH"
+  # 1. venv with the Google libraries
+  if [ "${SKIP_AIRTIME_DEPS:-0}" = "1" ]; then
+    warn "venv și npm sărite (SKIP_AIRTIME_DEPS=1)"
+  else
+    if [ -x "$AH/venv/bin/python" ] || python3 -m venv "$AH/venv" >/dev/null 2>&1; then
+      if "$AH/venv/bin/python" -m pip install -q -r "$src/scripts/requirements.txt" >"$AH/pip.log" 2>&1; then ok "airtime: venv gata ($AH/venv)"
+      else warn "airtime: bibliotecile Python n-au mers, vezi $AH/pip.log"; errors=$((errors+1)); fi
+    else
+      warn "airtime: nu pot crea venv-ul"; errors=$((errors+1))
+    fi
+  fi
+  # 2. intro template (kept as is when already there, node_modules included)
+  if [ -d "$src/remotion" ]; then
+    mkdir -p "$AH/remotion"
+    rsync -a --exclude='node_modules' "$src/remotion/" "$AH/remotion/" && ok "airtime: șablon intro copiat" \
+      || { warn "airtime: n-am putut copia șablonul remotion"; errors=$((errors+1)); }
+    if [ "${SKIP_AIRTIME_DEPS:-0}" != "1" ]; then
+      if ! command -v npm >/dev/null 2>&1; then warn "airtime: lipsește npm (Node.js); rulează din nou comanda după ce îl ai"; errors=$((errors+1))
+      elif (cd "$AH/remotion" && npm install --no-audit --no-fund) >"$AH/npm.log" 2>&1; then ok "airtime: pachetele Remotion instalate"
+      else warn "airtime: npm install n-a mers, vezi $AH/npm.log"; errors=$((errors+1)); fi
+    fi
+  fi
+  # 3. browser-harness, the tool (the skill comes from browser-harness@creator-kit).
+  # From browser-use/browser-harness install.md (Fast Path), MIT:
+  #   uv tool install --python 3.12 --upgrade --force browser-harness
+  # The rest of install.md (recordings consent, Chrome remote debugging) is for the
+  # user and the skill, not for this script; recordings stay at their default.
+  if command -v browser-harness >/dev/null 2>&1; then
+    ok "browser-harness: îl ai deja"
+  elif [ "${SKIP_AIRTIME_DEPS:-0}" = "1" ]; then
+    :
+  elif ! command -v uv >/dev/null 2>&1; then
+    warn "browser-harness: lipsește uv (brew install uv); rulează din nou comanda după"; errors=$((errors+1))
+  elif uv tool install --python 3.12 --upgrade --force browser-harness >"$AH/browser-harness.log" 2>&1; then
+    ok "browser-harness: instalat"
+  else
+    warn "browser-harness: n-a mers, vezi $AH/browser-harness.log"; errors=$((errors+1))
+  fi
+}
+
+errors=0; ECC_DONE="no"; AIRTIME_DONE="no"
 for i in "${TODO[@]}"; do
+  case "$i" in
+    skill:*)
+      ensure_market creator-kit || { errors=$((errors+1)); continue; }
+      scan; install_creator_skill "${i#skill:}"; continue ;;
+  esac
   id="$(field $i 1)"; label="$(field $i 2)"; kind="$(field $i 5)"; mem="$(field $i 6)"
   scan
   case "$kind" in
     group)
       ensure_market creator-kit || { errors=$((errors+1)); continue; }
-      for m in $mem; do
-        if have I "$m@creator-kit"; then run plugin update "$m@creator-kit" >/dev/null 2>&1; ok "$m (actualizat)"
-        elif have S "$m" || have A "$m"; then ok "$m: îl ai deja, sar peste"
-        else install_plugin "$m@creator-kit" "$m"; fi
-      done ;;
+      for m in $mem; do install_creator_skill "$m"; done ;;
     plugin)
       market="${id#*@}"; name="${id%@*}"
+      [ "$id" = "airtime@creator-kit" ] && AIRTIME_DONE="yes"
       ensure_market "$market" || { errors=$((errors+1)); continue; }
       if have I "$id"; then run plugin update "$id" >/dev/null 2>&1; ok "$label (actualizat)"; continue; fi
       if have P "$name"; then ok "$label: îl ai deja, sar peste"; continue; fi
@@ -552,13 +685,15 @@ PY
   esac
 done
 
+if [ "$AIRTIME_DONE" = "yes" ]; then scan; airtime_post; fi
+
 # --- 4. Quieter ECC ---------------------------------------------------------
 # ECC ships developer hooks; GateGuard stops the first file write of every
 # session to ask for "facts". For content work, switch ECC to its minimal hook
 # profile and turn GateGuard off. Existing values are left alone.
 if [ "$ECC_DONE" = "yes" ]; then
   echo
-  echo "3. Reglaj ecc pentru lucru de conținut"
+  echo "4. Reglaj ecc pentru lucru de conținut"
   SETTINGS="$CONF/settings.json"
   if [ "$DRY" = "yes" ]; then
     echo "    [dry-run] settings.json: ECC_HOOK_PROFILE=minimal, ECC_GATEGUARD=off"

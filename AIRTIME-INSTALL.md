@@ -20,10 +20,10 @@ AirTime ia un singur clip filmat de tine și propune un montaj, un video YouTube
 - **Ce faci:** deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipește comanda de mai jos și apasă Enter:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "<N>"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "14"
 ```
 
-`<N>` este numărul din lista scriptului la care apare „airtime”. Scriptul îl alege împreună cu tot ce are nevoie.
+`14` este numărul din lista scriptului la care apare „airtime”. Scriptul îl alege împreună cu tot ce are nevoie.
 
 - **Cum verifici:** la final scriptul spune că AirTime e instalat. Poți rula și verificarea din [Verificarea finală](#verificarea-finala).
 
@@ -34,7 +34,7 @@ AirTime ia un singur clip filmat de tine și propune un montaj, un video YouTube
 Nu trebuie să instalezi nimic de mână. Scriptul pune pe Mac:
 
 - **Programe de bază:** `node` (rulează șablonul de intro) și `ffmpeg` (taie și îmbină video). Sunt programe gratuite, fără ele nu se poate face montajul.
-- **Pluginurile de care depinde AirTime:** `creator-skills`, `ecc`, `marketing`, `brand-voice`, `remotion-skills` și `claude-shorts`. Primele sunt colecții de reguli și unelte pentru Claude; `claude-shorts` taie reels-urile și pune subtitrări.
+- **Pluginurile de care depinde AirTime:** `social-seo`, `brandkit` și `browser-harness` (câte un skill din `creator-skills`, nu tot pachetul), `ecc`, `marketing`, `brand-voice`, `remotion-skills` și `claude-shorts`. Primele sunt colecții de reguli și unelte pentru Claude; `claude-shorts` taie reels-urile și pune subtitrări.
 - **Un mediu separat pentru AirTime**, în `~/.airtime/venv`: biblioteci care vorbesc cu YouTube. Nu atinge restul Mac-ului.
 - **Șablonul de intro**, în `~/.airtime/remotion`: se instalează o singură dată.
 - **browser-harness:** unealta de rezervă pentru browser (vezi [Rezerva browser](#rezerva-browser)). Se instalează, dar nu se pornește.
