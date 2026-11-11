@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude skills for content work, one plugin per skill so an install adds only what is missing: presentations, social posts and SEO, brand, podcasts, prompts for image and video AI.",
-    "version": "2.0.3"
+    "version": "2.1.0"
   },
   "plugins": [
     {
@@ -138,6 +138,17 @@
       ]
     },
     {
+      "name": "browser-harness",
+      "description": "Controlează un browser real prin CDP: clicuri, scris, pagini cu JavaScript sau cu sesiune deschisă. Unealta (CLI) se instalează o dată, de setup-mac.sh. Din browser-use/browser-harness (MIT), fixat pe v0.1.13.",
+      "source": {
+        "source": "github",
+        "repo": "browser-use/browser-harness",
+        "ref": "v0.1.13",
+        "sha": "c24e5072ee66f8499bacd663f4f4bcb089bc4492"
+      },
+      "strict": true
+    },
+    {
       "name": "remotion-skills",
       "description": "Official Remotion skills (13) for making videos from code: best practices, captions, rendering, media, studio. Referenced from remotion-dev/skills, not copied.",
       "source": {
@@ -210,6 +221,12 @@
       "skills": [
         "./"
       ]
+    },
+    {
+      "name": "airtime",
+      "description": "Dintr-un singur clip: propunere de montaj, video YouTube programat și 3-5 reels Instagram programate, cu aprobarea ta la fiecare pas.",
+      "source": "./airtime",
+      "strict": true
     }
   ]
 }
