@@ -223,7 +223,7 @@ uv path (second run, `PATH` without `~/.local/bin`, only `uv`/`uvx` symlinked in
 printed `browser-harness: instalat`; `$S/uv-bin` holds `browser-harness` and `browser-harness-mcp`. The uv log ends with
 `warning: ... uv-bin is not on your PATH`, so the "installed" line is printed although the command is not usable from the
 shell. Every other item printed "(actualizat)" (rerun updates; the `--force` of `uv tool install` reinstalls each time).
-Observed, as expected from `setup-mac.sh:565-572`. **PASS for the uv path executing; the PATH message is a finding below.**
+Observed, as expected from `setup-mac.sh:569-572`. **PASS for the uv path executing; the PATH message is a finding below.**
 
 ### Step 2: check (observed)
 
@@ -273,7 +273,7 @@ step 2, so the texts were written without that skill (finding 1).
    plugin with `SKILL.md` at the plugin root. The installed skill is reported missing in `--check`, `check.sh --quick` and by
    the agent in run C. The e2e fake config uses the `skills/<name>/` layout, so Task 10 could not show it. The installer's
    own `requires_of()` treats the dependency as satisfied, so the two disagree.
-2. `setup-mac.sh:693-700`: `uv tool install` can succeed with the tool dir off PATH; the script still prints
+2. `setup-mac.sh:569-572`: `uv tool install` can succeed with the tool dir off PATH; the script still prints
    `browser-harness: instalat` and the user cannot run it. Reruns also reinstall with `--force`.
 3. `shorts venv` ticks while `SKIP_SHORTS_DEPS=1` left the installed shorts without a venv: `reels.shorts_python()` fell
    back to the real `~/.shorts-skill/bin/python3`. Correct as a lookup order, but the check can pass on a machine other than
