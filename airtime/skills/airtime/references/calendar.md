@@ -31,6 +31,7 @@ O listă de obiecte:
 
 - YouTube: în ziua aleasă de coach, la `youtube_time` din profil.
 - Reel-ul numărul N: în ziua aleasă + N zile, la `reels_time`. Câte un reel pe zi.
+- Dacă Shorts e pornit, fiecare reel are și un element `shorts` cu același fișier, aceeași zi și aceeași oră, titlu cu `#Shorts`.
 - Un Short (clip vertical de cel mult 3 minute ales ca Short) intră ca `shorts`, la `youtube_time`.
 - Coachul poate muta orice dată. Orice mutare reafișează tabelul.
 
@@ -40,7 +41,8 @@ O listă de obiecte:
 2. După ce un element e programat și verificat (YouTube: răspunsul `youtube.py`; Instagram: apare în Planificator la ora bună), devine `programat`, cu `ref` completat. Se scrie în fișier imediat, nu la sfârșit.
 3. Dacă pasul pică, elementul devine `esuat`, cu motivul pe scurt în `ref`.
 4. Elementele cu `status == "programat"` nu se reiau niciodată, nici dacă coachul cere "mai rulează o dată".
-5. `youtube.py upload` cu codul 5 (fișier deja urcat) înseamnă că elementul e deja programat: se trece `programat`, cu linkul din câmpul `existing` al răspunsului. Nu se folosește `--force`.
+5. `youtube.py upload` cu codul 5 (fișier deja urcat) nu înseamnă automat "programat": se rulează `youtube.py --profile NUME verify --id <id din existing> --publish-at "<data>"`. La succes elementul devine `programat`, cu linkul în `ref`; la eșec rămâne `esuat`, cu motivul. Nu se folosește `--force` și nu se urcă a doua oară.
+5b. Dacă upload-ul a urcat videoclipul dar verificarea a picat (răspuns cu `id`/`url`, cod 2), elementul e `esuat` și `ref` păstrează `id`, linkul și `publishAt`. Reluarea doar verifică (`verify`), nu urcă.
 6. Elementele `esuat` se reiau doar la cererea coachului.
 7. Dacă coachul schimbă ceva după confirmare (text, dată, ce intră), elementele afectate revin la `planificat`, tabelul se arată din nou și se așteaptă un nou "da" sau "confirm".
 
