@@ -1,6 +1,6 @@
 # Catalog complet: skill-uri, agenți, comenzi
 
-Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 10 pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, 577 elemente. Nu edita de mână: rulează din nou scriptul.
+Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 11 pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, 583 elemente. Nu edita de mână: rulează din nou scriptul.
 
 Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e completată de mână: ★★★ esențial pentru conținut fitness (prezentări, clipuri, postări), ★★ util, ★ ocazional, gol = irelevant pentru tine. Lista scurtă, explicată în română, e în [CATALOG.md](CATALOG.md).
 
@@ -11,10 +11,11 @@ Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e co
 | [anthropic-skills](#anthropic-skills) | cont claude.ai (skill-uri Anthropic) | vine cu contul Claude | 20 | 0 | 0 |  |
 | [brand-voice](#brand-voice) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 3 | 5 | 3 |  |
 | [canva](#canva) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 6 | 0 | 0 |  |
-| [creator-skills](#creator-skills) | marketplace `creator-kit` | instalat de setup-mac.sh | 11 | 0 | 0 |  |
+| [creator-skills](#creator-skills) | marketplace `creator-kit` | instalat de setup-mac.sh | 13 | 0 | 0 |  |
 | [design](#design) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 7 | 0 | 0 |  |
 | [ecc](#ecc) | marketplace `ecc` | instalat de setup-mac.sh | 314 | 71 | 98 | da |
 | [marketing](#marketing) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 8 | 0 | 0 |  |
+| [marketingskills](#marketingskills) | marketplace `creator-kit` | instalat de setup-mac.sh | 4 | 0 | 0 |  |
 | [postiz](#postiz) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 1 | 0 | 0 |  |
 | [remotion-skills](#remotion-skills) | marketplace `creator-kit` | instalat de setup-mac.sh | 13 | 0 | 0 |  |
 | [skill-uri-separate](#skill-uri-separate) | folderul de skill-uri | instalat de setup-mac.sh (~/.claude/skills) | 1 | 0 | 0 |  |
@@ -81,14 +82,16 @@ Sursă: marketplace `knowledge-work-plugins`, versiunea 1.0.0.
 
 ## creator-skills
 
-Sursă: marketplace `creator-kit`, versiunea 1.0.0.
+Sursă: marketplace `creator-kit`.
 
 | Tip | Nume | Fitness | La ce folosește |
 |---|---|---|---|
 | skill | `brandkit` | ★★★ | **board de brand: logo, culori, identitate.** Premium brand-kit image generation skill for creating high-end brand-guidelines boards, logo systems, identity decks, and visual-world presentations. Trained for minimal… |
 | skill | `humanizer` | ★★★ | **scoate tonul de AI din texte.** Remove signs of AI-generated writing from text. Use when editing or reviewing text to make it sound more natural and human-written. Based on Wikipedia's comprehensive "S… |
+| skill | `social-seo` | ★★★ | **descrieri și titluri găsite în căutare: Instagram, YouTube, Shorts.** Writes search-optimized text for videos and posts on Instagram (Reels, carousels, posts), YouTube (long videos and Shorts) and TikTok. It covers the caption with keyword… |
 | skill | `notebooklm` | ★★ | **lucru cu NotebookLM (surse, rezumate, podcast).** Complete API for Google NotebookLM - full programmatic access including features not in the web UI. Create notebooks, add sources, generate all artifact types, download… |
 | skill | `plan-taskmanager` | ★★ | **plan pas cu pas pentru proiecte mari.** Build a task plan that survives contact with reality — one that gets executed cleanly, in a single pass, with no drift and no rework. Use whenever a plan is being create… |
+| skill | `podcast-insights` | ★★ | **fișă de idei verificabile din podcasturi și interviuri.** Turns a YouTube podcast or interview into a verifiable episode sheet. It extracts the transcript, then organizes the ideas by category, with the minute of each idea, its… |
 | skill | `prompt-master` | ★★ | **prompturi pentru Midjourney, video AI, alte unelte.** Generates optimized prompts for AI tools. Activates only when the user explicitly asks to write, fix, improve, or adapt a prompt for a specific AI tool (LLM, Cursor, Mid… |
 | skill | `skill-router` | ★★ | **alege singur skill-ul potrivit.** The dispatcher. Fires before answering generically whenever a request is vague, open-ended, situational, or when the operator doesn't know which skill, agent, or plugin… |
 | skill | `theme-factory` | ★★ | **teme gata făcute pentru slide-uri.** Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fonts that… |
@@ -615,6 +618,17 @@ Sursă: marketplace `knowledge-work-plugins`, versiunea 1.2.0.
 | skill | `email-sequence` | ★★ | **secvențe email pentru clienți noi.** Design and draft multi-email sequences with full copy, timing, branching logic, exit conditions, and performance benchmarks. Use when building onboarding, lead nurture,… |
 | skill | `performance-report` | ★★ | **raport rezultate campanie.** Build a marketing performance report with key metrics, trend analysis, wins and misses, and prioritized optimization recommendations. Use when wrapping a campaign, when… |
 | skill | `seo-audit` | ★ | **audit SEO site.** Run a comprehensive SEO audit — keyword research, on-page analysis, content gaps, technical checks, and competitor comparison. Use when assessing a site's SEO health, wh… |
+
+## marketingskills
+
+Sursă: marketplace `creator-kit`.
+
+| Tip | Nume | Fitness | La ce folosește |
+|---|---|---|---|
+| skill | `social` | ★★★ | **ce postezi, formate, scripturi de reels, calendar.** When the user wants organic social content for LinkedIn, X, Instagram, TikTok, or Facebook, or asks what to post, which format to favor, or from which account: posts, th… |
+| skill | `content-strategy` | ★★ | **strategia de conținut: teme și piloni.** When the user wants to plan content, or asks which topic or piece to prioritize, what to write about, or why posts bring no customers: topic clusters, editorial calendar… |
+| skill | `copy-editing` | ★★ | **corectura textelor de marketing.** When the user wants to edit, tighten, proofread, or refresh existing copy, or asks whether to keep, cut, or change a line in it, without rewriting from scratch. Every ed… |
+| skill | `video` | ★★ | **clipuri cu AI sau din cod, făcute repetabil.** When the user wants to create video with AI tools or code, or asks which approach to use (screen recording, AI avatar, generated, or templated) or how to make videos rep… |
 
 ## postiz
 
