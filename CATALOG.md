@@ -18,8 +18,8 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 |---|---|---|
 | `pptx` (vine cu contul) | creează și editează fișiere PowerPoint | „Fă un PowerPoint de 8 slide-uri cu pachetele de abonament pentru sala mea.” |
 | `ecc:frontend-slides` | prezentări HTML animate, deschise în browser; convertește și din PPTX | „Fă-mi o prezentare animată pentru workshopul de nutriție de sâmbătă.” |
-| `creator-skills:theme-factory` | aplică una din 10 teme vizuale gata făcute pe slide-uri sau documente | „Aplică o temă energică, cu contrast puternic, pe prezentarea de mai sus.” |
-| `creator-skills:brandkit` | board de brand: logo, culori, fonturi, identitate vizuală | „Fă-mi un brand kit pentru un studio de antrenament funcțional.” |
+| `theme-factory` | aplică una din 10 teme vizuale gata făcute pe slide-uri sau documente | „Aplică o temă energică, cu contrast puternic, pe prezentarea de mai sus.” |
+| `brandkit` | board de brand: logo, culori, fonturi, identitate vizuală | „Fă-mi un brand kit pentru un studio de antrenament funcțional.” |
 | `ecc:google-workspace-ops` | lucrează în Google Slides, Docs și Sheets | „Mută prezentarea în Google Slides și dă-mi linkul.” |
 | `pdf`, `docx` (vin cu contul) | ghiduri, programe de antrenament, fișe pentru clienți | „Fă un PDF de 4 pagini cu programul de 6 săptămâni pentru începători.” |
 
@@ -34,7 +34,7 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 | `ecc:content-engine` | transformă o filmare sau o idee în conținut pentru TikTok, YouTube Shorts, Reels | „Din clipul ăsta fă-mi un plan de 5 postări pe TikTok și Instagram.” |
 | `shorts` (claude-shorts) | din video lung: alege momentele, le taie vertical, pune subtitrări animate, exportă pentru Reels, TikTok, Shorts | „Din antrenamentul de 40 de minute din ~/Movies/live.mp4 fă-mi 5 shorts cu subtitrări.” |
 | `remotion-skills:remotion-captions` și restul Remotion | regulile oficiale pentru clipuri din cod, subtitrări, randare | „Fă un clip de 15 secunde cu cele 3 reguli ale genuflexiunii, text animat.” |
-| `creator-skills:prompt-master` | scrie prompturi bune pentru unelte video și imagine AI (Runway, Kling, Midjourney) | „Scrie-mi un prompt pentru un clip AI de 5 secunde cu o sală de forță la răsărit.” |
+| `prompt-master` | scrie prompturi bune pentru unelte video și imagine AI (Runway, Kling, Midjourney) | „Scrie-mi un prompt pentru un clip AI de 5 secunde cu o sală de forță la răsărit.” |
 
 ### Postări și texte
 
@@ -45,12 +45,19 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 | `marketing:campaign-plan` | plan de campanie: obiectiv, mesaje, calendar, canale | „Plan de campanie pentru lansarea programului de 8 săptămâni, în ianuarie.” |
 | `ecc:marketing-campaign` | campanie completă: poziționare, landing page, email, postări, reclame | „Campanie completă pentru provocarea de vară, cu buget mic.” |
 | `ecc:crosspost` | aceeași idee, rescrisă pentru fiecare rețea; nu publică nimic singur | „Adaptează postarea asta pentru Instagram, Facebook și LinkedIn.” |
-| `creator-skills:humanizer` | scoate tonul de AI din texte | „Fă textul ăsta să sune natural, ca scris de mine.” |
+| `humanizer` | scoate tonul de AI din texte | „Fă textul ăsta să sune natural, ca scris de mine.” |
 | `brand-voice` (plugin) | învață tonul tău din postările existente, scrie ghidul de ton, verifică textele noi | „Uite 20 din postările mele; extrage-mi ghidul de ton.” |
 | `ecc:brand-voice` | profil de stil din textele tale reale, refolosit la postări și mesaje | „Scrie postarea de mâine în stilul meu.” |
 | `marketing:email-sequence` | secvențe de email pentru clienți noi sau abonați | „Secvență de 5 emailuri de bun venit pentru membrii noi.” |
 | `postiz` | programează și publică postările pe rețele, cu statistici (cont Postiz) | „Programează cele 5 postări pe Instagram, câte una pe zi, la 18:00.” |
 | `ecc:article-writing` | articole, ghiduri, newsletter | „Articol de blog despre cât de des să te antrenezi după 40 de ani.” |
+| `social-seo` | descrieri care apar în căutare: prima linie, text pe ecran, 3–5 hashtaguri, alt text; pe YouTube titlu, primele 2 rânduri, capitole, tag-uri | „Scrie descrierea pentru reel-ul cu exerciții de abdomen acasă, pentru Instagram și YouTube Shorts, cu SEO.” |
+| `social` (marketingskills) | ce postezi și în ce format, scripturi de clipuri scurte, calendar | „Ce să postez săptămâna asta ca antrenor personal în Cluj? Dă-mi 5 idei de reels cu script.” |
+| `content-strategy` (marketingskills) | strategia de conținut: teme, piloni, ce publici și de ce | „Fă-mi o strategie de conținut pe 3 luni pentru un studio de pilates.” |
+| `copy-editing` (marketingskills) | corectura și îmbunătățirea textelor | „Corectează și strânge textul ăsta de pe pagina de abonamente.” |
+| `marketing:competitive-brief` | analiza concurenței: ce comunică, ce prețuri au, unde ai loc | „Compară-mă cu 3 săli din oraș: mesaje, prețuri, ce postează.” |
+| `podcast-insights` | din podcast sau interviu de pe YouTube: fișă de idei verificabile, cu minutul fiecăreia | „Fă-mi fișa episodului ăsta: <link YouTube>.” |
+| `youtube-transcript` (server MCP) | citește transcrierea oricărui clip YouTube, ca să faci postări din clipuri vechi | „Ia transcrierea clipului meu <link> și scoate din el 5 postări.” |
 
 ### Design vizual și Canva
 
@@ -75,16 +82,18 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `marketing:brand-review` | verifică un text sau o campanie față de brand |
 | `ecc:market-research` | studiu de piață cu surse |
 | `ecc:brand-discovery` | interviu ghidat, în mai multe sesiuni, pentru identitatea brandului |
-| `creator-skills:plan-taskmanager` | plan pas cu pas pentru un proiect mai mare, de exemplu lansarea unui program online |
-| `creator-skills:skill-router` | când nu știi ce skill să folosești: îl alege el |
-| `creator-skills:notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio din materialele tale |
+| `plan-taskmanager` | plan pas cu pas pentru un proiect mai mare, de exemplu lansarea unui program online |
+| `skill-router` | când nu știi ce skill să folosești: îl alege el |
+| `notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio din materialele tale |
 | `xlsx` (vine cu contul) | tabele: progresul clienților, calorii, buget de campanie |
 
 ## Ce aduce fiecare plugin
 
 | Plugin | Sursă | Ce aduce |
 |---|---|---|
-| `creator-skills` | acest repo | 11 skill-uri, explicate mai jos |
+| `creator-skills` | acest repo | 13 skill-uri, explicate mai jos; fiecare e plugin separat, deci se instalează doar ce lipsește |
+| `marketingskills` | coreyhaines31/marketingskills (MIT), legat direct | 4 skill-uri: `social`, `video`, `content-strategy`, `copy-editing` |
+| `youtube-transcript` | jkawamoto/mcp-youtube-transcript (MIT) | server MCP: transcrieri și informații despre clipuri YouTube, fără cheie API |
 | `ecc` | affaan-m/ecc | peste 300 de skill-uri, 71 de agenți, 98 de comenzi. Cele mai multe sunt pentru programatori; pentru tine contează cele de video, prezentări, conținut și marketing din tabelele de mai sus. Scriptul îi oprește hook-urile de programare care te-ar încurca. |
 | `marketing` | Anthropic | 8 skill-uri: brand-review, campaign-plan, competitive-brief, content-creation, draft-content, email-sequence, performance-report, seo-audit |
 | `design` | Anthropic | 7 skill-uri; pentru tine contează mai ales `design-critique` |
@@ -112,6 +121,8 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `full-output-enforcement` | obligă Claude să livreze textul complet, nu prescurtat |
 | `imagegen-frontend-web` | imagini de referință pentru un site |
 | `imagegen-frontend-mobile` | imagini de referință pentru o aplicație mobilă |
+| `social-seo` | texte găsite în căutare pe Instagram, YouTube și TikTok |
+| `podcast-insights` | fișă de idei verificabile din podcasturi și interviuri, într-o bibliotecă proprie |
 
 ## Neincluse, pentru că cer abonament plătit
 

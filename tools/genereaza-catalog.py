@@ -30,7 +30,7 @@ OUT = os.path.join(REPO, "CATALOG-COMPLET.md")
 # Where each plugin comes from, as shown in the table of contents.
 PROFIL = {name: "instalat de setup-mac.sh" for name in (
     "creator-skills", "ecc", "marketing", "design", "brand-voice", "canva", "superpowers",
-    "remotion-skills", "workout-program-designer", "postiz")}
+    "remotion-skills", "workout-program-designer", "postiz", "marketingskills")}
 PROFIL["skill-uri-separate"] = "instalat de setup-mac.sh (~/.claude/skills)"
 PROFIL["anthropic-skills"] = "vine cu contul Claude"
 
@@ -102,6 +102,12 @@ RELEVANTA = {
     "creator-skills:skill-router": (2, "alege singur skill-ul potrivit"),
     "creator-skills:plan-taskmanager": (2, "plan pas cu pas pentru proiecte mari"),
     "creator-skills:compact-handoff": (1, "salvează sesiunea înainte de /compact"),
+    "creator-skills:social-seo": (3, "descrieri și titluri găsite în căutare: Instagram, YouTube, Shorts"),
+    "creator-skills:podcast-insights": (2, "fișă de idei verificabile din podcasturi și interviuri"),
+    "marketingskills:social": (3, "ce postezi, formate, scripturi de reels, calendar"),
+    "marketingskills:video": (2, "clipuri cu AI sau din cod, făcute repetabil"),
+    "marketingskills:content-strategy": (2, "strategia de conținut: teme și piloni"),
+    "marketingskills:copy-editing": (2, "corectura textelor de marketing"),
     "superpowers:brainstorming": (2, "rafinează o idee înainte de execuție"),
     "productivity:task-management": (1, "listă de taskuri"),
     "productivity:memory-management": (1, "memorie de lucru"),
@@ -173,9 +179,25 @@ def collect():
     plugins = {}
     installed = json.load(open(os.path.join(CONF, "plugins", "installed_plugins.json")))
     installed = installed.get("plugins", installed)
+    # The kit ships one plugin per skill; show them grouped, as in the menu.
+    groups = {}
+    try:
+        for e in json.load(open(os.path.join(REPO, ".claude-plugin", "marketplace.json")))["plugins"]:
+            src = e.get("source")
+            if isinstance(src, str) and src.startswith("./creator-skills/"):
+                groups[e["name"]] = "creator-skills"
+            elif isinstance(src, dict) and "marketingskills" in src.get("url", ""):
+                groups[e["name"]] = "marketingskills"
+    except (OSError, ValueError, KeyError):
+        pass
     for key, versions in installed.items():
         name, market = key.split("@", 1)
         items, hooks = scan_plugin(versions[0]["installPath"])
+        group = groups.get(name) if market == "creator-kit" else None
+        if group:
+            entry = plugins.setdefault(group, {"sursa": "marketplace `creator-kit`", "versiune": "", "items": [], "hooks": False})
+            entry["items"] = sorted(entry["items"] + items)
+            continue
         plugins[name] = {"sursa": f"marketplace `{market}`", "versiune": versions[0].get("version", ""),
                          "items": items, "hooks": hooks}
     loose = []

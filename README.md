@@ -19,26 +19,36 @@ Deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipe�
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"
 ```
 
-La pornire scriptul arată lista cu cele 11 unelte și întreabă:
+La pornire scriptul arată lista cu cele 13 unelte, cu ce ai deja marcat, și întreabă:
 
 ```
-Instalez [T]oate sau [A]leg eu? (T/a):
+Instalez [T]oate (doar ce lipsește) sau [A]leg eu? (T/a):
 ```
 
-Enter instalează tot. `a` te lasă să scrii doar numerele dorite, de exemplu `1 3 6 11`. Poți rula comanda din nou oricând, ca să adaugi ce ai sărit.
+Enter instalează tot ce lipsește. `a` te lasă să scrii doar numerele dorite, de exemplu `1 3 11 13`. Poți rula comanda din nou oricând, ca să adaugi ce ai sărit.
 
-Fără întrebări: adaugi la sfârșitul comenzii `-- --toate` sau `-- --doar "1 3 11"`.
+Fără întrebări: adaugi la sfârșitul comenzii `-- --toate` sau `-- --doar "1 3 13"`.
+
+### Fără dubluri
+
+Înainte să instaleze ceva, scriptul se uită ce ai deja în Claude: pluginuri, skill-uri, agenți, pluginurile din cont și din Cowork, serverele MCP. Apoi:
+
+- un skill din kit pe care îl ai deja, sub orice nume de plugin, nu se mai instalează (în meniu vezi de exemplu „lipsesc 10 din 13”);
+- un plugin pe care îl ai deja e sărit; dacă vine din acest kit, doar se actualizează;
+- un pachet mare care conține câteva skill-uri pe care le ai deja (de exemplu `design` și `ecc` au amândouă `design-system`) îți arată care sunt și te întreabă `(d/N)`. Enter înseamnă nu: pachetul e sărit. Dacă scriptul rulează fără Terminal în care să întrebe, sare peste el;
+- serverul de transcriere YouTube se instalează doar dacă nu ai deja unul.
 
 Scriptul face singur tot ce lipsește pentru ce ai ales:
 
 1. **Unelte Apple** (`git`, `python3`): dacă lipsesc, deschide fereastra de instalare. Apeși **Install**, aștepți, apoi rulezi din nou aceeași comandă.
-2. **Homebrew, Node.js și ffmpeg**: le instalează doar dacă lipsesc și doar dacă le cere ce ai ales (ecc, remotion-skills, claude-shorts). Homebrew îți cere o dată parola de Mac.
+2. **Homebrew, Node.js, ffmpeg, uv și yt-dlp**: le instalează doar dacă lipsesc și doar dacă le cere ce ai ales (ecc, remotion-skills și claude-shorts cer Node și ffmpeg; serverul de transcriere cere uv; podcast-insights cere yt-dlp). Homebrew îți cere o dată parola de Mac.
 3. **Aplicația Claude**: o instalează dacă lipsește. Atunci scriptul se oprește și îți cere să o deschizi, să intri în cont (Pro sau Max) și să deschizi o dată tab-ul **Code**. Apoi rulezi din nou aceeași comandă.
 4. **Pluginurile alese** din tabelul de mai jos.
 5. **claude-shorts**, dacă l-ai ales, cu uneltele lui de transcriere și randare (aproximativ 1 GB, un minut sau două).
-6. **Reglajul pluginului `ecc`**, dacă l-ai ales.
+6. **Serverul MCP `youtube-transcript`**, dacă l-ai ales: Claude poate citi transcrierea oricărui clip YouTube, fără cheie API.
+7. **Reglajul pluginului `ecc`**, dacă l-ai instalat acum.
 
-Comanda e sigură la rulări repetate: ce e deja instalat doar se actualizează. Durează în total 5–15 minute, în funcție de internet.
+Comanda e sigură la rulări repetate: ce vine din kit doar se actualizează, iar ce ai din altă parte nu se dublează. Durează în total 5–15 minute, în funcție de internet.
 
 Fiecare rând trebuie să se termine cu ✔. Un `!` galben e un avertisment. Un `✘` roșu e o eroare: rulezi din nou comanda, iar dacă rămâne, trimiți mai departe textul de pe linia respectivă.
 
@@ -48,9 +58,9 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 
 | Plugin | Pentru ce |
 |---|---|
-| `creator-skills` | 11 skill-uri din acest repo: humanizer, brandkit, teme pentru prezentări, prompt-master, NotebookLM și altele |
+| `creator-skills` | 13 skill-uri din acest repo, fiecare instalat separat: humanizer, brandkit, teme pentru prezentări, prompt-master, NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) și **podcast-insights** (fișă de idei verificabile din podcasturi) |
 | `ecc` | montaj video, clipuri din cod (Remotion), prezentări HTML animate, sistem de conținut pe rețele |
-| `marketing` | postări, campanii, secvențe email, analiză concurență (Anthropic) |
+| `marketing` | postări, campanii, secvențe email, analiza concurenței (`competitive-brief`), audit SEO (Anthropic) |
 | `design` | feedback pe design-uri (Anthropic) |
 | `brand-voice` | ghid de ton al brandului tău și verificarea textelor după el (Anthropic) |
 | `canva` | creează, editează și redimensionează design-uri direct în contul tău Canva |
@@ -59,6 +69,8 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 | `workout-program-designer` | programe de antrenament personalizate: obiectiv, progresie, zile de pauză, acasă sau la sală, săptămâni de descărcare |
 | `postiz` | programează și publică postări pe Instagram, TikTok, Facebook, YouTube și altele. Cere cont Postiz: varianta cloud e plătită, gratuită e doar varianta instalată pe serverul tău |
 | `claude-shorts` (skill separat) | dintr-un video lung găsește momentele bune, le taie vertical pentru Reels, TikTok și Shorts și pune subtitrări animate |
+| `marketingskills` | 4 skill-uri din [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (MIT): `social` (ce postezi, formate, scripturi de reels, calendar), `video`, `content-strategy`, `copy-editing` |
+| `youtube-transcript` (server MCP) | transcrierea și informațiile oricărui clip YouTube, fără cheie API ([jkawamoto/mcp-youtube-transcript](https://github.com/jkawamoto/mcp-youtube-transcript), MIT) |
 
 ## Postiz gratuit, pe Mac
 
@@ -90,7 +102,7 @@ De știut înainte:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --check
 ```
 
-Trebuie să vezi „Totul e la locul lui.”
+Fiecare unealtă pe care ai ales-o trebuie să aibă ✔. Ce n-ai ales apare cu „neinstalat”.
 
 În aplicație, în tab-ul Code, scrie `/` și caută `humanizer` sau `video-editing`. Dacă apar în listă, instalarea a mers.
 
@@ -108,7 +120,7 @@ Nu trebuie să știi numele skill-urilor. Scrie ce vrei, în română, și Claud
 - „Ia textul ăsta și scoate-i tonul de AI.” (skill-ul `humanizer`)
 - „Redimensionează designul meu din Canva pentru Story, Reel și postare pătrată.”
 
-Dacă vrei un skill anume, îl chemi cu `/` și numele lui, de exemplu `/ecc:video-editing` sau `/creator-skills:humanizer`.
+Dacă vrei un skill anume, îl chemi cu `/` și numele lui, de exemplu `/ecc:video-editing` sau `/humanizer:humanizer` (skill-urile din kit au fiecare pluginul lor, cu același nume).
 
 Mai multe exemple, pe categorii, sunt în [CATALOG.md](CATALOG.md).
 
@@ -127,6 +139,8 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | Skill-urile nu apar după instalare | Nu ai închis aplicația cu Cmd+Q. Închide-o complet și deschide-o din nou. |
 | Claude îți cere „facts” înainte să scrie un fișier | E un hook al pluginului `ecc`, oprit de script în `settings.json`. Repornește aplicația; dacă tot apare, spune-i lui Doru. |
 | Skill-ul de video spune că lipsește `ffmpeg` | Instalează-l cu `brew install ffmpeg` (vezi pasul 2). |
+| „… conține skill-uri sau agenți pe care îi ai deja” | Scriptul nu dublează nimic fără acordul tău. Enter sare peste pachet; `d` îl instalează oricum. |
+| Lângă `creator-skills` scrie „lipsesc 10 din 13” | Ai deja 3 dintre skill-uri din altă parte. Se instalează doar cele 10 care lipsesc. |
 
 ## Ce e în repo
 
@@ -136,7 +150,7 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | `postiz-local.sh` | Postiz gratuit pe Mac (Colima + Docker) |
 | `CATALOG.md` | ce să folosești pentru prezentări, video și postări, cu exemple |
 | `CATALOG-COMPLET.md` | fiecare skill, agent și comandă instalată, generat automat |
-| `creator-skills/` | pluginul cu cele 11 skill-uri |
+| `creator-skills/` | cele 13 skill-uri, câte un folder fiecare; fiecare folder e un plugin separat în `.claude-plugin/marketplace.json` |
 | `skills.txt`, `tools/sync-skills.sh` | pentru Doru: lista skill-urilor și copierea lor din repoul lui personal |
 | `tools/genereaza-catalog.py` | pentru Doru: regenerează `CATALOG-COMPLET.md` |
 
@@ -146,10 +160,10 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 bash tools/sync-skills.sh
 ```
 
-Copiază din `~/claude-code-sync/obsydia-skills/skills/` skill-urile din `skills.txt`, fără să modifice nimic acolo, și mărește versiunea pluginului. Apoi refaci catalogul dintr-o instalare de test și publici:
+Copiază din `~/claude-code-sync/obsydia-skills/skills/` skill-urile din `skills.txt` în `creator-skills/<nume>/`, fără să modifice nimic acolo, și mărește versiunea marketplace-ului. `social-seo` și `podcast-insights` sunt ale kitului și rămân neatinse. Un skill nou adăugat în `skills.txt` are nevoie și de o intrare în `marketplace.json` (scriptul te anunță). Apoi refaci catalogul dintr-o instalare de test, izolată de contul tău, și publici:
 
 ```bash
-CLAUDE_CONFIG_DIR=/tmp/test-claude bash setup-mac.sh && CLAUDE_CONFIG_DIR=/tmp/test-claude python3 tools/genereaza-catalog.py
+mkdir -p /tmp/test-claude/app && CLAUDE_CONFIG_DIR=/tmp/test-claude CREATOR_KIT_APP_DIR=/tmp/test-claude/app CREATOR_KIT_SOURCE="$PWD" bash setup-mac.sh --toate && CLAUDE_CONFIG_DIR=/tmp/test-claude python3 tools/genereaza-catalog.py
 ```
 
 ```bash

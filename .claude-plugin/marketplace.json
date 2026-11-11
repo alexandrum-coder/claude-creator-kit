@@ -4,14 +4,126 @@
     "name": "Doru Maican"
   },
   "metadata": {
-    "description": "Claude skills for content work: presentations, social media posts, brand, prompts for image and video AI.",
-    "version": "1.1.0"
+    "description": "Claude skills for content work, one plugin per skill so an install adds only what is missing: presentations, social posts and SEO, brand, podcasts, prompts for image and video AI.",
+    "version": "2.0.0"
   },
   "plugins": [
     {
-      "name": "creator-skills",
-      "source": "./creator-skills",
-      "description": "11 skills for content creators: humanizer, brandkit, theme-factory, prompt-master, notebooklm, skill-router, plan-taskmanager, compact-handoff, full-output-enforcement, imagegen-frontend-web, imagegen-frontend-mobile."
+      "name": "humanizer",
+      "description": "Scoate tonul de AI din texte, ca să sune scrise de om.",
+      "source": "./creator-skills/humanizer",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "brandkit",
+      "description": "Brand kit: logo, culori, fonturi, identitate vizuală.",
+      "source": "./creator-skills/brandkit",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "theme-factory",
+      "description": "Teme vizuale gata făcute pentru slide-uri și documente.",
+      "source": "./creator-skills/theme-factory",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "prompt-master",
+      "description": "Prompturi bune pentru unelte AI de imagine, video și text.",
+      "source": "./creator-skills/prompt-master",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "notebooklm",
+      "description": "Lucru cu Google NotebookLM: surse, rezumate, podcast audio.",
+      "source": "./creator-skills/notebooklm",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "skill-router",
+      "description": "Alege skill-ul potrivit când nu știi pe care să-l folosești.",
+      "source": "./creator-skills/skill-router",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "plan-taskmanager",
+      "description": "Plan pas cu pas pentru proiecte mai mari, fără reveniri.",
+      "source": "./creator-skills/plan-taskmanager",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "compact-handoff",
+      "description": "Salvează starea sesiunii înainte de /compact sau /clear.",
+      "source": "./creator-skills/compact-handoff",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "full-output-enforcement",
+      "description": "Cere rezultate complete, fără bucăți lăsate „de completat”.",
+      "source": "./creator-skills/full-output-enforcement",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "imagegen-frontend-web",
+      "description": "Concepte vizuale pentru site-uri.",
+      "source": "./creator-skills/imagegen-frontend-web",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "imagegen-frontend-mobile",
+      "description": "Concepte vizuale pentru aplicații mobile.",
+      "source": "./creator-skills/imagegen-frontend-mobile",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "social-seo",
+      "description": "Texte găsite în căutare pe Instagram, YouTube și TikTok: prima linie, text pe ecran, hashtaguri, titlu, capitole.",
+      "source": "./creator-skills/social-seo",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "podcast-insights",
+      "description": "Din podcast sau interviu de pe YouTube: transcriere și fișă de idei verificabile, pe categorii, cu minutul fiecărei idei.",
+      "source": "./creator-skills/podcast-insights",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
     },
     {
       "name": "remotion-skills",
@@ -29,6 +141,58 @@
         "source": "git-subdir",
         "url": "https://github.com/OneWave-AI/claude-skills.git",
         "path": "workout-program-designer"
+      },
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "social",
+      "description": "Ce postezi pe rețele, formate, scripturi de clipuri scurte, calendar. Din coreyhaines31/marketingskills (MIT).",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/coreyhaines31/marketingskills.git",
+        "path": "skills/social"
+      },
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "video",
+      "description": "Video cu AI sau din cod (Remotion): demo-uri, clipuri repetabile. Din coreyhaines31/marketingskills (MIT).",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/coreyhaines31/marketingskills.git",
+        "path": "skills/video"
+      },
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "content-strategy",
+      "description": "Strategia de conținut: teme, piloni, ce publici și de ce. Din coreyhaines31/marketingskills (MIT).",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/coreyhaines31/marketingskills.git",
+        "path": "skills/content-strategy"
+      },
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "copy-editing",
+      "description": "Corectura și îmbunătățirea textelor de marketing. Din coreyhaines31/marketingskills (MIT).",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/coreyhaines31/marketingskills.git",
+        "path": "skills/copy-editing"
       },
       "strict": false,
       "skills": [
