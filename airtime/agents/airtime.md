@@ -59,7 +59,13 @@ SHORTS_PY=$(cd "$SCRIPTS" && "$PY" -c 'import reels; print(reels.shorts_python()
 - Scripturile se rulează cu `"$PY" "$SCRIPTS/<script>.py"`. Pașii claude-shorts (doar transcrierea) se rulează cu `"$SHORTS_PY"`, dar prin `reels.py transcribe`, care îl alege singur.
 - Calea clipului poate conține spații și diacritice: pune-o mereu între ghilimele duble.
 - Profilul: `"$PY" -c` cu `sys.path.insert(0, "$SCRIPTS")`, `import airtime_config as c; p = c.load_profile("<PROFIL>")`. Cheile folosite: `channel`, `intro_text`, `colors`, `youtube_time`, `reels_time`, `keywords`, `clip_type`, `timezone`, `shorts`, `voice` (opțional).
-- Modelul de transcriere: `model` din `"$AIRTIME_HOME/speed.json"`; dacă fișierul sau cheia lipsesc, `small`.
+- Modelul de transcriere, calculat în preambul și folosit ca `$MODEL`: `model` din `"$AIRTIME_HOME/speed.json"`; dacă fișierul sau cheia lipsesc, `small`:
+  ```bash
+  MODEL=$("$PY" -c 'import json,os,sys
+try: print(json.load(open(os.path.join(os.environ["AIRTIME_HOME"],"speed.json"))).get("model") or "small")
+except Exception: print("small")')
+  ```
+- Limba textelor: `language` din profil (implicit `ro`). Titlurile de capitole, titlul și descrierea YouTube, caption-urile și textul alternativ de la `texte` și `reels` se scriu în limba aceasta, iar `language` din `youtube-meta.json` e aceeași valoare. Instrucțiunile tale și blocurile întoarse rămân în română.
 
 ## Comanda `propune`
 
@@ -99,7 +105,7 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
 4. Capitolele. Citește `transcript-curat.json` (segmentele cu `start`, `end`, `text`) și împarte clipul în 3 până la 8 capitole după schimbarea subiectului. Reguli:
    - primul capitol începe la 0 pe clipul tăiat;
    - fiecare capitol are cel puțin 15 secunde (YouTube cere 10; ia o marjă);
-   - titlurile au 2 până la 6 cuvinte, în română, cu diacritice, fără ghilimele;
+   - titlurile au 2 până la 6 cuvinte, în limba profilului (`language`), cu semnele ei diacritice, fără ghilimele;
    - dacă clipul e prea scurt pentru 3 capitole de 15 secunde, fă câte încap și scrie pe un rând în bloc `Capitole: doar <n>, clipul e scurt`.
    Scrie `RUN_DIR/chapters.json`: `[{"t": <secunde pe clipul tăiat>, "title": "..."}]`.
 5. Props pentru randare. Culorile = profilul cu cheile imbricate îmbinate peste valorile implicite (`load_profile` îmbină un singur nivel). Scrie `RUN_DIR/props.json` cu un script Python scurt:
@@ -119,7 +125,7 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
    (creează întâi `$RUN_DIR/render`; stdout e un singur JSON `{intro, overlays:[{file,t}]}`, progresul merge pe stderr). Poate dura câteva minute; nu o întrerupe.
 7. Compune:
    `"$PY" "$SCRIPTS/compose.py" --curat "$RUN_DIR/curat.mp4" --render "$RUN_DIR/render/render.json" --out "$RUN_DIR/youtube.mp4"`
-8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: un capitol `{"t": 0, "title": "Intro"}`, apoi fiecare capitol din `chapters.json` cu `t` mărit cu durata intro-ului (rotunjit la secundă). Fără el, capitolele YouTube ar fi decalate; pentru `texte` e sursa capitolelor.
+8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: fără capitol separat pentru intro (YouTube cere minimum 10 secunde pe capitol). Primul capitol din `chapters.json` rămâne la `t: 0` (intro-ul face parte din el); fiecare capitol următor primește `t` mărit cu durata intro-ului, rotunjit la secundă. Așa timpii urmează videoclipul final; pentru `texte` e sursa capitolelor.
 
 Bloc de întors:
 
@@ -139,6 +145,7 @@ Păstrează blocul sub 10 rânduri; dacă sunt multe capitole, scrie numai prime
 
 Ieșiri în `RUN_DIR`: `youtube-meta.json`, `candidati.json`. Intrări: `transcript-curat.json`, `chapters-youtube.json`, `youtube.mp4`.
 
+0. Verifică `chapters-youtube.json`: dacă are mai puțin de 3 capitole, oprește imediat, fără dry-run, cu `EROARE: texte - sunt <n> capitole, YouTube cere cel puțin 3; clipul e prea scurt, refă capitolele la montaj sau urcă fără capitole`.
 1. Citește ghidurile, în ordinea asta:
    - `skills/social-seo/SKILL.md` din pluginul `social-seo` instalat. Caută în `installed_plugins.json` (din `$CLAUDE_CONFIG_DIR/plugins/`, sau `~/.claude/plugins/` dacă variabila lipsește) toate valorile `installPath` și ia prima în care există `skills/social-seo/SKILL.md`. Dacă nu există nicăieri, continuă numai cu `texte.md` și scrie pe un rând `social-seo lipsește`.
    - `$ROOT/skills/airtime/references/texte.md` (regulile AirTime pentru titluri, descrieri, hook-uri). Dacă lipsește, `EROARE: lipsește references/texte.md`.
@@ -146,10 +153,10 @@ Ieșiri în `RUN_DIR`: `youtube-meta.json`, `candidati.json`. Intrări: `transcr
 2. Scrie `youtube-meta.json`:
    ```json
    {"title": "...", "description": "...", "tags": ["... 10-15 ..."],
-    "chapters": [{"t": 0, "title": "Intro"}, ...],
-    "language": "ro", "category_id": "17"}
+    "chapters": [{"t": 0, "title": "..."}, ...],
+    "language": "<language din profil>", "category_id": "17"}
    ```
-   `chapters` = conținutul din `chapters-youtube.json`. Descrierea NU conține lista de capitole (`youtube.py` o adaugă singur). Titlul: cel mult 70 de caractere, fără `<` sau `>`, cu cuvântul-cheie principal din `keywords` din profil dacă se potrivește firesc. Textele se bazează numai pe ce se spune în `transcript-curat.json`; nu inventa cifre, promisiuni sau nume.
+   `chapters` = conținutul din `chapters-youtube.json`. Descrierea NU conține lista de capitole (`youtube.py` o adaugă singur). Titlul: cel mult 70 de caractere, fără `<` sau `>`, cu cuvântul-cheie principal din `keywords` din profil chiar la ÎNCEPUTUL titlului (dacă lista e goală, cel mai important substantiv din clip, tot la început). Textele se bazează numai pe ce se spune în `transcript-curat.json`; nu inventa cifre, promisiuni sau nume.
 3. Validează, fără urcare:
    `"$PY" "$SCRIPTS/youtube.py" --profile "$PROFIL" upload --dry-run --file "$RUN_DIR/youtube.mp4" --meta "$RUN_DIR/youtube-meta.json" --publish-at "$DATA_YOUTUBE" --run-dir "$RUN_DIR"`
    Opțiunea `--profile` stă înaintea lui `upload`. Fără `DATA_YOUTUBE`, calculează data cu `datetime` + `zoneinfo` (peste 2 zile, la `youtube_time`, în `timezone` din profil).
@@ -195,10 +202,10 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
    ```json
    [{"file": "<cale completă .mp4>", "caption": "...", "hashtags": ["#...", "... 3-5 ..."], "alt_text": "..."}]
    ```
-   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`), cu o invitație blândă la final (comentariu, salvare sau urmărire). Fără cifre sau promisiuni care nu se aud în clip.
+   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`), cu cuvântul-cheie din `keywords` în prima propoziție, și o invitație blândă la final (comentariu, salvare sau urmărire). Fără cifre sau promisiuni care nu se aud în clip.
    - `hashtags`: 3 până la 5, cu `#`, fără spații, fără diacritice dacă nu sunt folosite uzual, mai întâi cele specifice subiectului, apoi cel de nișă; cuvintele din `keywords` din profil au prioritate.
-   - `alt_text`: o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
-   - Stilul: dacă profilul are cheia `voice` (text cu vocea salvată a brandului), scrie caption-urile în acea voce, aplicând regulile din skill-ul `brand-voice` dacă e instalat. Altfel, ton cald, direct, în română, la persoana a doua singular sau cum cere `references/texte.md`.
+   - `alt_text` (în limba profilului): o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
+   - Stilul: dacă profilul are cheia `voice` (text cu vocea salvată a brandului), scrie caption-urile în acea voce, aplicând regulile din skill-ul `brand-voice` dacă e instalat. Altfel, ton cald, direct, în limba profilului, la persoana a doua singular sau cum cere `references/texte.md`.
 4. Verifică: numărul de intrări din `instagram.json` = numărul de fișiere din `reels`; fiecare `file` există; fiecare `hashtags` are între 3 și 5 elemente.
 
 Bloc de întors:
