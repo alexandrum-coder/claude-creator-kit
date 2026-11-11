@@ -163,17 +163,30 @@ speed_test() {
     check "viteză" 0 unelte "ffmpeg nu a putut crea clipul de test"; return
   fi
 
+  # Short clip for an untimed warm-up: downloads and loads each model before the timed run.
+  if ! ffmpeg -y -loglevel error -i "$tmp/test.mp4" -t 3 -c copy "$tmp/warm.mp4" >/dev/null 2>&1; then
+    check "viteză" 0 unelte "ffmpeg nu a putut crea clipul de încălzire"; return
+  fi
+
   for m in small medium; do
+    if ! "$SHORTS_PY" "$DIR/reels.py" transcribe --video "$tmp/warm.mp4" --out "$tmp/warm-$m.json" --model "$m" >/dev/null 2>&1; then
+      if [ "$m" = small ]; then check "viteză" 0 unelte "transcrierea cu modelul small a eșuat"; return; fi
+      out "! Modelul medium nu a putut fi pregătit (probabil lipsește internetul sau spațiul). Folosesc modelul small."
+      break
+    fi
     t0="$(now)"
     if ! "$SHORTS_PY" "$DIR/reels.py" transcribe --video "$tmp/test.mp4" --out "$tmp/$m.json" --model "$m" >/dev/null 2>&1; then
-      check "viteză" 0 unelte "transcrierea cu modelul $m a eșuat"; return
+      if [ "$m" = small ]; then check "viteză" 0 unelte "transcrierea cu modelul small a eșuat"; return; fi
+      out "! Transcrierea cu modelul medium a eșuat. Folosesc modelul small."
+      break
     fi
     t1="$(now)"
     # 30 s of audio: seconds per audio minute = elapsed * 2; a 20 min clip = spm * 20 / 60 minutes.
-    spm="$(awk -v a="$t0" -v b="$t1" 'BEGIN { printf "%.1f", (b - a) * 2 }')"
-    est="$(awk -v s="$spm" 'BEGIN { printf "%.1f", s * 20 / 60 }')"
+    # C locale: these numbers go into speed.json, which needs a decimal point.
+    spm="$(LC_ALL=C awk -v a="$t0" -v b="$t1" 'BEGIN { printf "%.1f", (b - a) * 2 }')"
+    est="$(LC_ALL=C awk -v s="$spm" 'BEGIN { printf "%.1f", s * 20 / 60 }')"
     out "  $m: $spm secunde pe minut de înregistrare (estimare pentru 20 de minute: $est minute)"
-    if awk -v e="$est" 'BEGIN { exit !(e <= 30) }'; then
+    if LC_ALL=C awk -v e="$est" 'BEGIN { exit !(e <= 30) }'; then
       best="$m"; best_spm="$spm"; best_est="$est"
     else
       break   # a bigger model is never faster
@@ -190,7 +203,7 @@ speed_test() {
     check "viteză" 0 unelte "randarea intro-ului a eșuat"; return
   fi
   t1="$(now)"
-  intro_sec="$(awk -v a="$t0" -v b="$t1" 'BEGIN { printf "%.1f", b - a }')"
+  intro_sec="$(LC_ALL=C awk -v a="$t0" -v b="$t1" 'BEGIN { printf "%.1f", b - a }')"
 
   mkdir -p "$AIRTIME_HOME"
   printf '{"model": "%s", "sec_per_min": %s, "intro_sec": %s, "estimate_20min_min": %s}\n' \

@@ -49,7 +49,13 @@ PYEOF
   cat > "$e/home/.shorts-skill/bin/python3" <<'PYEOF'
 #!/bin/bash
 if [ "$1" = "-c" ]; then exit 0; fi
-while [ $# -gt 0 ]; do [ "$1" = "--out" ] && : > "$2"; shift; done
+while [ $# -gt 0 ]; do
+  [ "$1" = "--out" ] && out="$2"
+  [ "$1" = "--model" ] && model="$2"
+  shift
+done
+[ -n "${FAKE_FAIL_MODEL:-}" ] && [ "$model" = "$FAKE_FAIL_MODEL" ] && exit 1
+: > "$out"
 echo '{"transcript": "x"}'
 PYEOF
   chmod +x "$e/bin/say" "$e/bin/node" "$e/ahome/venv/bin/python" "$e/home/.shorts-skill/bin/python3"
@@ -68,7 +74,7 @@ JEOF
 run_check() {
   local e="$1"; shift
   OUT="$(env -i PATH="$e/bin" HOME="$e/home" AIRTIME_HOME="$e/ahome" \
-        CLAUDE_CONFIG_DIR="$e/cfg" SHORTS_ROOT="$e/shorts" FAKE_WHOAMI_EXIT="${FAKE_WHOAMI_EXIT:-0}" \
+        CLAUDE_CONFIG_DIR="$e/cfg" SHORTS_ROOT="$e/shorts" FAKE_WHOAMI_EXIT="${FAKE_WHOAMI_EXIT:-0}" FAKE_FAIL_MODEL="${FAKE_FAIL_MODEL:-}" LC_ALL="${TEST_LC_ALL:-C}" \
         /bin/bash "$CHECK" "$@" 2>&1)"
   RC=$?
 }
@@ -144,6 +150,29 @@ assert d["model"] in ("small", "medium")
 assert d["estimate_20min_min"] >= 0
 ' "$E/ahome/speed.json" && ok "speed.json valid" || { fail "speed.json"; echo "$OUT"; }
 case "$OUT" in *"minute"*) ok "speed: romanian estimate" ;; *) fail "speed message"; echo "$OUT" ;; esac
+
+# 8. Medium transcription fails: warn, fall back to small, still write speed.json.
+E="$(make_env medfail)"
+FAKE_FAIL_MODEL=medium run_check "$E" --speed
+[ "$RC" = 0 ] && ok "medium fails: exit 0" || { fail "medium fails: exit $RC"; echo "$OUT"; }
+"$REAL_PY" -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+assert d["model"] == "small", d
+' "$E/ahome/speed.json" && ok "medium fails: speed.json model small" || { fail "medium fails: speed.json"; echo "$OUT"; }
+case "$OUT" in *"medium"*"small"*) ok "medium fails: romanian warning" ;; *) fail "medium warning"; echo "$OUT" ;; esac
+
+# 8b. Small fails: loud failure, no speed.json.
+E="$(make_env smallfail)"
+FAKE_FAIL_MODEL=small run_check "$E" --speed
+[ "$RC" = 1 ] && [ ! -e "$E/ahome/speed.json" ] && ok "small fails: exit 1, no speed.json" || { fail "small fails: rc $RC"; echo "$OUT"; }
+
+# 9. Romanian locale: speed.json numbers keep a decimal point.
+E="$(make_env locale)"
+TEST_LC_ALL=ro_RO.UTF-8 run_check "$E" --speed
+[ "$RC" = 0 ] && ok "ro locale: exit 0" || { fail "ro locale: exit $RC"; echo "$OUT"; }
+"$REAL_PY" -c 'import json, sys; json.load(open(sys.argv[1]))' "$E/ahome/speed.json" \
+  && ok "ro locale: speed.json parses" || fail "ro locale: speed.json invalid"
 
 echo
 if [ "$FAILS" = 0 ]; then echo "PASS"; exit 0; else echo "FAIL ($FAILS)"; exit 1; fi
