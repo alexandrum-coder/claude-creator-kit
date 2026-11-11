@@ -3,7 +3,6 @@ brandkit
 theme-factory
 prompt-master
 notebooklm
-skill-router
 plan-taskmanager
 compact-handoff
 full-output-enforcement

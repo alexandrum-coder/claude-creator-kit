@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude skills for content work, one plugin per skill so an install adds only what is missing: presentations, social posts and SEO, brand, podcasts, prompts for image and video AI.",
-    "version": "2.0.1"
+    "version": "2.0.2"
   },
   "plugins": [
     {
@@ -66,12 +66,12 @@
       ]
     },
     {
-      "name": "skill-router",
-      "description": "Alege skill-ul potrivit când nu știi pe care să-l folosești.",
-      "source": "./creator-skills/skill-router",
+      "name": "personal-assistant",
+      "description": "Îți spune ce unealtă să folosești și o pornește: clipurile la AirTime, site-urile și aplicațiile la un plan scris, restul la un flux de 3–5 unelte.",
+      "source": "./creator-skills/personal-assistant",
       "strict": false,
-      "skills": [
-        "./"
+      "agents": [
+        "./agents/personal-assistant.md"
       ]
     },
     {

@@ -57,7 +57,7 @@ has_tty() { [ -r /dev/tty ] && { : < /dev/tty; } 2>/dev/null; }
 #   kind plugin: one plugin; members = its skills when known in advance
 #   kind shorts: the claude-shorts skill; kind mcp: the transcript MCP server
 # prompt-agent needs prompt-master; both are members of this group.
-CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm skill-router plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights"
+CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm personal-assistant plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights"
 MK_SKILLS="social video content-strategy copy-editing"
 REMOTION_SKILLS="remotion-best-practices remotion-captions remotion-create remotion-docs remotion-interactivity remotion-license remotion-maps remotion-markup remotion-multimedia remotion-render remotion-saas remotion-studio remotion-upgrade"
 ITEMS=(
@@ -250,7 +250,7 @@ status() {
   case "$kind" in
     group)
       for m in $mem; do
-        n=$((n+1)); have S "$m" || k=$((k+1)); have I "$m@creator-kit" && u=$((u+1))
+        n=$((n+1)); { have S "$m" || have A "$m"; } || k=$((k+1)); have I "$m@creator-kit" && u=$((u+1))
       done
       if [ $k -eq 0 ] && [ $u -gt 0 ]; then echo upd
       elif [ $k -eq 0 ]; then echo ok
@@ -451,7 +451,7 @@ for i in "${TODO[@]}"; do
       ensure_market creator-kit || { errors=$((errors+1)); continue; }
       for m in $mem; do
         if have I "$m@creator-kit"; then run plugin update "$m@creator-kit" >/dev/null 2>&1; ok "$m (actualizat)"
-        elif have S "$m"; then ok "$m: îl ai deja, sar peste"
+        elif have S "$m" || have A "$m"; then ok "$m: îl ai deja, sar peste"
         else install_plugin "$m@creator-kit" "$m"; fi
       done ;;
     plugin)

@@ -83,7 +83,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `ecc:market-research` | studiu de piață cu surse |
 | `ecc:brand-discovery` | interviu ghidat, în mai multe sesiuni, pentru identitatea brandului |
 | `plan-taskmanager` | plan pas cu pas pentru un proiect mai mare, de exemplu lansarea unui program online |
-| `skill-router` | când nu știi ce skill să folosești: îl alege el |
+| `personal-assistant` | când nu știi ce unealtă să folosești: o alege și o pornește (clip la AirTime, site sau aplicație la un plan scris, restul la 3–5 pași) |
 | `notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio din materialele tale |
 | `xlsx` (vine cu contul) | tabele: progresul clienților, calorii, buget de campanie |
 
@@ -116,7 +116,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `prompt-master` | prompturi optimizate pentru alte unelte AI (imagine, video, chat) |
 | `prompt-agent` | la prima cerere de lucru din sesiune îți arată promptul optimizat (cu prompt-master) și pornește doar după ce aprobi; pentru o cerere nouă scrii `/prompt-agent <cerere>` |
 | `notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio |
-| `skill-router` | alege skill-ul potrivit când cererea e vagă |
+| `personal-assistant` | agent: alege și pornește unealta potrivită după ce aprobi promptul |
 | `plan-taskmanager` | plan de execuție pentru proiecte cu mulți pași |
 | `compact-handoff` | salvează starea unei sesiuni lungi înainte de `/compact` |
 | `full-output-enforcement` | obligă Claude să livreze textul complet, nu prescurtat |
