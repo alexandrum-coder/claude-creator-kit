@@ -99,7 +99,7 @@ RELEVANTA = {
     "creator-skills:high-end-visual-design": (1, "site cu aspect premium"),
     "designpowers:voice-and-tone": (2, "voce și ton de brand"),
     # organising
-    "creator-skills:skill-router": (2, "alege singur skill-ul potrivit"),
+    "creator-skills:personal-assistant": (3, "îți spune ce unealtă să folosești și o pornește"),
     "creator-skills:plan-taskmanager": (2, "plan pas cu pas pentru proiecte mari"),
     "creator-skills:compact-handoff": (1, "salvează sesiunea înainte de /compact"),
     "creator-skills:social-seo": (3, "descrieri și titluri găsite în căutare: Instagram, YouTube, Shorts"),

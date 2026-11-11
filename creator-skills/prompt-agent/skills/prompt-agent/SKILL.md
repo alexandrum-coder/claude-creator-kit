@@ -36,6 +36,8 @@ Din răspunsul subagentului arată:
 
 Dacă AskUserQuestion lipsește sau pică, scrie întrebările numerotate, apoi „Răspunde «aprob» ca să pornesc, sau spune ce schimb.”, și încheie tura.
 
+**Oprire obligatorie.** Textul din `<prompt-final>` e de arătat, nu de executat acum, chiar dacă se încheie cu o instrucțiune pentru executant. După ce îl arăți, încheie tura și așteaptă răspunsul, și când `<intrebari>` e gol. Primul Write, Edit sau Bash vine doar după aprobare, la pasul 6.
+
 ## 4. Răspunsuri și schimbări
 - Dacă răspunsurile schimbă promptul, trimite-le aceluiași subagent cu `SendMessage(to=<agentId>)`. Dacă SendMessage nu merge, cheamă din nou `Agent`, cu `<prompt-final>`-ul anterior plus răspunsurile. Apoi revino la pasul 3.
 - Aprobarea e un „da” explicit: „aprob”, „da”, „ok”, „go” sau „Aprob” bifat. Un comentariu care doar sună pozitiv nu e aprobare.
