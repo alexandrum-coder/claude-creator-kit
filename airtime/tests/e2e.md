@@ -1,8 +1,8 @@
 # AirTime end-to-end test, up to the confirmation table
 
-Isolated run of the real pipeline on a generated clip. Nothing is uploaded or scheduled; nothing touches `~/.claude`,
-`~/.airtime`, `~/AirTime` or the main kit. Everything generated lives in the scratchpad
-(`$S/airtime-e2e/`). Date of the run: 2026-11-11.
+Isolated run of the real pipeline on a generated clip. Nothing is uploaded or scheduled. Nothing was written to
+`~/.claude`, `~/.airtime`, `~/AirTime` or the main kit, but the skill and the agent READ the real home in a few places
+(see "Isolation leaks"). Everything generated lives in the scratchpad (`$S/airtime-e2e/`). Date of the run: 2026-11-11.
 
 ## Files
 
@@ -29,7 +29,7 @@ In run C, and only there:
    dir whose `plugins/installed_plugins.json` lists social-seo, brand-voice, marketing and ecc (each with a stub
    `SKILL.md`). So the real check for those four plugins and for the real YouTube connection was NOT exercised. The
    other checks (ffmpeg, ffprobe, node, venv, shorts, shorts venv, remotion) ran for real.
-3. Claude's own profile (`$S/cfg-test`, already logged in by the user) was never modified. Runs A and B used the real
+3. Claude's own profile (`$S/cfg-test`, already logged in by the user) was never modified by the test (Claude itself only adds its own session files there). Runs A and B used the real
    `scripts/` with no doubles (so in B, `texte` printed "social-seo lipsește": the real situation without that plugin).
 
 `logs/refused.log` in the scratchpad holds one line, `["--profile","principal","upload","--file","x","--meta","y"]`: it
@@ -131,6 +131,9 @@ exercised here (no real upload); parked for the final review. This task touches 
 4. **The scratch claude-shorts clone has no `node_modules`** (`setup.sh` was not run, by ruling), so its Remotion
    render fails with `Cannot find package '@remotion/bundler'`.
 
+5. **Isolation leak.** See "Isolation leaks" below: the skill and agent read `~/.airtime`, `~/AirTime`, `~/.claude/plugins` and search
+   the disk with `find /` when the plugin root or `installed_plugins.json` is missing.
+
 For the test only, `make_shorts_copy.sh` works around 2-4 in a copy under `$SCR` (the original clone and `~/.shorts-skill`
 are untouched): face tracking returns no positions when `mp.solutions` is missing (the test clip has no face, so a working
 detector would find none either; the reframe falls back to its default crop), `export.sh` gets `paste -sd ',' -`, and
@@ -141,6 +144,59 @@ Other notes: in run C the model read `tests/e2e/check.sh` (the double) with `cat
 reminder that the double is visible in the worktree path. Remotion's first render downloaded a headless Chrome into
 `./.remotion` of the working folder (it landed in the worktree during the first run); it was moved out and `run.sh` now
 does `cd "$SCR"` first.
+
+## Isolation leaks: reads of the real home (no writes)
+
+The environment variables point at the scratchpad, but the transcripts show the agent and the skill looking at the real
+home. Nothing was written there; the reads are listed per run (from `logs/*.jsonl`, Bash `tool_use` inputs; the
+`${VAR:-$HOME/...}` fallbacks of the environment preamble and the `os.path.expanduser("~/.claude")` fallback in its
+Python snippet are not counted: they are only reached when the variable is unset, which it was not).
+
+| Run | Command (as run) | Reads |
+|---|---|---|
+| B | `ls -la ~/.claude/plugins/installed_plugins.json` | the real plugin list |
+| C | `ls /.../airtime-e2e/ ; ls ~/.airtime/profiles` | the real profile folder (it does not exist on this machine) |
+| C | `PY="$HOME/.airtime/venv/bin/python"` | a path in the real home (the agent tried it as the interpreter) |
+| C | `ls -la "$HOME/.airtime" \| head -5` | the real AirTime home (absent) |
+| C | `ls -la "$HOME/.claude/plugins/installed_plugins.json"` | the real plugin list |
+| C | `find / -maxdepth 6 -iname "installed_plugins.json"` (twice), `find / -ipath "*social-seo*SKILL.md"` | whole-disk search, which also lists the real `~/.claude` |
+| C, interrupted | `ls -la "$HOME/AirTime/"` | the real runs folder (absent) |
+| C, interrupted | `ls -la ~/.claude/plugins/`, `find ~/.claude/plugins -maxdepth 1 -iname "*social*seo*"`, `cat ~/.claude/plugins/installed_plugins.json \| head -60` | the real plugin list, with contents |
+
+Run A (failed) had no reference besides the preamble fallbacks.
+
+Causes, to fix in the plugin (not touched here): the skill's "Prima rulare" section names `~/.airtime/profiles`
+literally, so the model checks the real home instead of `$AIRTIME_HOME`; the agent's `installPath` fallback reads
+`$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json` and, when that file is missing (finding 1), the model goes looking in
+`~/.claude/plugins` and with `find /`; `texte` looks for `social-seo` through the same file. A cleaner isolation
+needs the plugin to resolve everything from `$AIRTIME_HOME` and `$CLAUDE_CONFIG_DIR` only and to stop at the first
+miss instead of searching.
+
+Check that there were no writes to those paths. The script below reads each transcript, takes every Write/Edit
+`file_path` and every Bash command line, and flags a write only when a redirection or a `tee`/`cp`/`mv`/`rm`/`mkdir`/`touch`/`ln`/`sed -i`
+targets `~/.claude`, `~/.airtime` or `~/AirTime` (also as `$HOME/...` or `/Users/<user>/...`):
+
+```python
+import json, re, sys
+home = r"(?:~|\$HOME|/Users/pixelpoetry)"
+real = re.compile(home + r"/(?:\.claude|\.airtime|AirTime)\b|\bfind /\s")
+wr = re.compile(r"(?:>>?|\btee|\bcp|\bmv|\brm|\bmkdir|\btouch|\bln|sed -i)\s+[^\n;|&]*" + home + r"/(?:\.claude|\.airtime|AirTime)\b")
+# for each transcript: for each tool_use block, c = input.command or input.file_path;
+#   Write/Edit with a path under the real home -> write; any Bash line matching `wr` -> write
+```
+
+Result of running it (full script kept in the scratchpad, `logs/scan2.py`) over the four transcripts:
+
+```
+runA-failed:      real-home references 1,  writes 0
+runB:             real-home references 5,  writes 0
+runC:             real-home references 13, writes 0
+runC-interrupted: real-home references 7,  writes 0
+```
+
+(The reference counts include the `expanduser("~/.claude")` fallback lines; the table above lists only the real reads.)
+Independent confirmation on disk: `~/.airtime` and `~/AirTime` do not exist after the runs (`ls -d` fails), so nothing
+could have been written there.
 
 ## How to repeat
 
