@@ -29,7 +29,7 @@ pas "https://console.cloud.google.com/apis/library/youtube.googleapis.com" \
 "Pasul 2: apasă Enable la „YouTube Data API v3”."
 
 pas "https://console.cloud.google.com/apis/credentials/consent" \
-"Pasul 3: la ecranul de consimțământ alege External, completează numele aplicației și e-mailul tău, apoi adaugă-te ca Test user."
+"Pasul 3: la ecranul de consimțământ alege External, completează numele aplicației și e-mailul tău, apoi adaugă-te ca Test user. Apoi apasă Publish app și confirmă, ca să scrie In production: dacă aplicația rămâne în Testing, accesul expiră după 7 zile."
 
 open "https://console.cloud.google.com/apis/credentials"
 echo

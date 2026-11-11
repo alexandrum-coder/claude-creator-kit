@@ -37,7 +37,11 @@ Profilul se citește și se salvează cu `airtime_config` (`load_profile`, `save
 
 ### "AirTime conectare"
 
-1. Rulează `"${CLAUDE_PLUGIN_ROOT}/scripts/connect-youtube.sh" --profile NUME` (în terminalul coachului; scriptul deschide paginile Google pe rând și se oprește la fiecare cu "Enter"). La final trebuie să se afișeze numele canalului; verifică cu `YT whoami`. Cod 3 = nu e conectat, cod 4 = lipsește fișierul clientului: repetă pasul din ghid.
+1. Scriptul de conectare așteaptă apăsări de Enter, deci îl rulează coachul, nu tu. Arată-i comanda completă, cu calea reală pusă în loc de `${CLAUDE_PLUGIN_ROOT}`, într-un bloc de cod gata de copiat:
+   ```bash
+   "${CLAUDE_PLUGIN_ROOT}/scripts/connect-youtube.sh" --profile "NUME"
+   ```
+   Spune-i să deschidă Terminal (Cmd+Space, scrie „Terminal”, Enter), să lipească comanda și să urmeze ce scrie pe ecran. Așteaptă până îți spune că a terminat. Apoi verifică cu `YT whoami`: trebuie să se afișeze numele canalului. Cod 3 = nu e conectat, cod 4 = lipsește fișierul clientului: repetă pasul din ghid.
 2. Apoi Instagram: ghidează-l pe coach prin secțiunea "Instagram" din `AIRTIME-INSTALL.md` (cont profesional de tip Creator, extensia Claude in Chrome, login în Business Suite), iar la final rulează "AirTime check" de mai sus.
 
 ### Prima rulare, fără profil

@@ -53,7 +53,12 @@ Dacă la „AirTime check” apare un ✘ cu trimitere la această secțiune și
 - **Durată:** cam 20 de minute, o singură dată.
 - **De ce atâția pași:** pentru ca AirTime să programeze videoclipuri pe canalul tău, Google cere să creezi „o cheie” personală, doar a ta. Nu plătești nimic. Google numește asta „proiect” și „aplicație”, dar este doar cheia ta de acces; nu publici nicio aplicație pentru public.
 
-**Pornește conectarea:** spune în Claude „AirTime conectare”. Claude pornește scriptul de conectare pentru tine. Scriptul deschide singur, pe rând, patru pagini Google. La fiecare face ce scrie mai jos, apoi revii în Terminal și apeși **Enter**.
+**Pornește conectarea.** Spune în Claude „AirTime conectare”. Claude îți arată o comandă într-un bloc de cod. O rulezi tu, în Terminal:
+1. Apasă Cmd+Space (se deschide căutarea Mac-ului), scrie „Terminal” și apasă Enter.
+2. Copiază comanda pe care ți-o dă Claude, lipește-o în fereastra Terminal (Cmd+V) și apasă Enter.
+3. Spune-i lui Claude când ai terminat.
+
+Scriptul deschide singur, pe rând, patru pagini Google. La primele trei faci ce scrie mai jos, apoi revii în Terminal și apeși **Enter**. La a patra nu mai apeși Enter: scriptul așteaptă singur până apare fișierul descărcat.
 
 **Pasul 1: proiect nou** (se deschide `console.cloud.google.com/projectcreate`)
 1. Dacă te întreabă, intră cu contul Google al canalului.
@@ -78,7 +83,7 @@ Dacă la „AirTime check” apare un ✘ cu trimitere la această secțiune și
 1. Apasă **Create credentials**, apoi **OAuth client ID**. **(UNVERIFIED — butoanele pot avea alt nume)**
 2. La „Application type” alege **Desktop app**. Numele poate rămâne cel implicit. Apasă **Create**.
 3. În fereastra care apare, apasă **Download JSON**. Fișierul se salvează în **Descărcări** (Downloads) și are un nume care începe cu `client_secret_`.
-4. Nu face nimic cu el. Scriptul îl caută singur în Descărcări, cam 10 minute, și îl mută în `~/.airtime` (un folder ascuns, doar al tău). Dacă nu îl găsește în 10 minute, rulează scriptul din nou după ce l-ai descărcat.
+4. Nu face nimic cu el și nu apăsa Enter. Scriptul îl caută singur în Descărcări, cam 10 minute (verifică la fiecare câteva secunde), și îl mută în `~/.airtime` (un folder ascuns, doar al tău). Dacă nu îl găsește în 10 minute, rulează scriptul din nou după ce l-ai descărcat.
 5. Nu trimite fișierul nimănui și nu îl pune în e-mail sau pe un drive. Este cheia ta.
 
 **Autorizarea (ultimul pas)**
