@@ -91,7 +91,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 
 | Plugin | Sursă | Ce aduce |
 |---|---|---|
-| `creator-skills` | acest repo | 13 skill-uri, explicate mai jos; fiecare e plugin separat, deci se instalează doar ce lipsește |
+| `creator-skills` | acest repo | 14 skill-uri, explicate mai jos; fiecare e plugin separat, deci se instalează doar ce lipsește |
 | `marketingskills` | coreyhaines31/marketingskills (MIT), legat direct | 4 skill-uri: `social`, `video`, `content-strategy`, `copy-editing` |
 | `youtube-transcript` | jkawamoto/mcp-youtube-transcript (MIT) | server MCP: transcrieri și informații despre clipuri YouTube, fără cheie API |
 | `ecc` | affaan-m/ecc | peste 300 de skill-uri, 71 de agenți, 98 de comenzi. Cele mai multe sunt pentru programatori; pentru tine contează cele de video, prezentări, conținut și marketing din tabelele de mai sus. Scriptul îi oprește hook-urile de programare care te-ar încurca. |
@@ -114,6 +114,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `brandkit` | board de brand: logo, paletă, fonturi, identitate |
 | `theme-factory` | 10 teme vizuale pentru slide-uri și documente |
 | `prompt-master` | prompturi optimizate pentru alte unelte AI (imagine, video, chat) |
+| `prompt-agent` | la prima cerere de lucru din sesiune îți arată promptul optimizat (cu prompt-master) și pornește doar după ce aprobi; pentru o cerere nouă scrii `/prompt-agent <cerere>` |
 | `notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio |
 | `skill-router` | alege skill-ul potrivit când cererea e vagă |
 | `plan-taskmanager` | plan de execuție pentru proiecte cu mulți pași |

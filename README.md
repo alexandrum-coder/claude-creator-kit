@@ -33,7 +33,7 @@ Fără întrebări: adaugi la sfârșitul comenzii `-- --toate` sau `-- --doar "
 
 Înainte să instaleze ceva, scriptul se uită ce ai deja în Claude: pluginuri, skill-uri, agenți, pluginurile din cont și din Cowork, serverele MCP. Apoi:
 
-- un skill din kit pe care îl ai deja, sub orice nume de plugin, nu se mai instalează (în meniu vezi de exemplu „lipsesc 10 din 13”);
+- un skill din kit pe care îl ai deja, sub orice nume de plugin, nu se mai instalează (în meniu vezi de exemplu „lipsesc 11 din 14”);
 - un plugin pe care îl ai deja e sărit; dacă vine din acest kit, doar se actualizează;
 - un pachet mare care conține câteva skill-uri pe care le ai deja (de exemplu `design` și `ecc` au amândouă `design-system`) îți arată care sunt și te întreabă `(d/N)`. Enter înseamnă nu: pachetul e sărit. Dacă scriptul rulează fără Terminal în care să întrebe, sare peste el;
 - serverul de transcriere YouTube se instalează doar dacă nu ai deja unul.
@@ -58,7 +58,7 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 
 | Plugin | Pentru ce |
 |---|---|
-| `creator-skills` | 13 skill-uri din acest repo, fiecare instalat separat: humanizer, brandkit, teme pentru prezentări, prompt-master, NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) și **podcast-insights** (fișă de idei verificabile din podcasturi) |
+| `creator-skills` | 14 skill-uri din acest repo, fiecare instalat separat: humanizer, brandkit, teme pentru prezentări, prompt-master, **prompt-agent** (la prima cerere de lucru îți arată promptul optimizat și pornește doar după ce aprobi), NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) și **podcast-insights** (fișă de idei verificabile din podcasturi) |
 | `ecc` | montaj video, clipuri din cod (Remotion), prezentări HTML animate, sistem de conținut pe rețele |
 | `marketing` | postări, campanii, secvențe email, analiza concurenței (`competitive-brief`), audit SEO (Anthropic) |
 | `design` | feedback pe design-uri (Anthropic) |
@@ -140,7 +140,7 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | Claude îți cere „facts” înainte să scrie un fișier | E un hook al pluginului `ecc`, oprit de script în `settings.json`. Repornește aplicația; dacă tot apare, spune-i lui Doru. |
 | Skill-ul de video spune că lipsește `ffmpeg` | Instalează-l cu `brew install ffmpeg` (vezi pasul 2). |
 | „… conține skill-uri sau agenți pe care îi ai deja” | Scriptul nu dublează nimic fără acordul tău. Enter sare peste pachet; `d` îl instalează oricum. |
-| Lângă `creator-skills` scrie „lipsesc 10 din 13” | Ai deja 3 dintre skill-uri din altă parte. Se instalează doar cele 10 care lipsesc. |
+| Lângă `creator-skills` scrie „lipsesc 11 din 14” | Ai deja 3 dintre skill-uri din altă parte. Se instalează doar cele 11 care lipsesc. |
 
 ## Ce e în repo
 
@@ -150,7 +150,7 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | `postiz-local.sh` | Postiz gratuit pe Mac (Colima + Docker) |
 | `CATALOG.md` | ce să folosești pentru prezentări, video și postări, cu exemple |
 | `CATALOG-COMPLET.md` | fiecare skill, agent și comandă instalată, generat automat |
-| `creator-skills/` | cele 13 skill-uri, câte un folder fiecare; fiecare folder e un plugin separat în `.claude-plugin/marketplace.json` |
+| `creator-skills/` | cele 14 skill-uri, câte un folder fiecare; fiecare folder e un plugin separat în `.claude-plugin/marketplace.json` |
 | `skills.txt`, `tools/sync-skills.sh` | pentru Doru: lista skill-urilor și copierea lor din repoul lui personal |
 | `tools/genereaza-catalog.py` | pentru Doru: regenerează `CATALOG-COMPLET.md` |
 

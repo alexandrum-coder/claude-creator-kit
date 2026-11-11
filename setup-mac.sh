@@ -56,11 +56,12 @@ has_tty() { [ -r /dev/tty ] && { : < /dev/tty; } 2>/dev/null; }
 #   kind group:  members are skills, each one its own plugin in creator-kit
 #   kind plugin: one plugin; members = its skills when known in advance
 #   kind shorts: the claude-shorts skill; kind mcp: the transcript MCP server
-CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master notebooklm skill-router plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights"
+# prompt-agent needs prompt-master; both are members of this group.
+CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm skill-router plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights"
 MK_SKILLS="social video content-strategy copy-editing"
 REMOTION_SKILLS="remotion-best-practices remotion-captions remotion-create remotion-docs remotion-interactivity remotion-license remotion-maps remotion-markup remotion-multimedia remotion-render remotion-saas remotion-studio remotion-upgrade"
 ITEMS=(
-  "creator@creator-kit|creator-skills|13 skill-uri: texte naturale, brand, SEO pe rețele, podcasturi|-|group|$CREATOR_SKILLS"
+  "creator@creator-kit|creator-skills|14 skill-uri: texte naturale, brand, SEO pe rețele, podcasturi|-|group|$CREATOR_SKILLS"
   "ecc@ecc|ecc|montaj video, prezentări animate, conținut pe rețele|node ffmpeg|plugin|"
   "marketing@knowledge-work-plugins|marketing|postări, campanii, emailuri, analiza concurenței|-|plugin|"
   "design@knowledge-work-plugins|design|feedback pe postări și flyere|-|plugin|"
