@@ -198,6 +198,89 @@ runC-interrupted: real-home references 7,  writes 0
 Independent confirmation on disk: `~/.airtime` and `~/AirTime` do not exist after the runs (`ls -d` fails), so nothing
 could have been written there.
 
+## Task 14: isolated install
+
+Real install (not `--dry-run`) of item 14 on a fresh profile, then the check, then run C again on the installed copy.
+`S` is the scratchpad. Environment for every step: `CLAUDE_CONFIG_DIR=$S/inst AIRTIME_HOME=$S/inst-home
+CREATOR_KIT_SOURCE=<worktree> CREATOR_KIT_APP_DIR=$S/app14 SKIP_SHORTS_DEPS=1`, with `PATH=$S/ffshim:~/.local/node/bin:$PATH`
+(ffmpeg shim; node). `SKIP_SHORTS_DEPS=1` because claude-shorts' `setup.sh` writes the real `~/.shorts-skill`; the clone into
+`$S/inst/skills/shorts` still ran. Logs: `$S/logs14/`.
+
+### Step 1: install (observed)
+
+```
+bash setup-mac.sh --doar 14        # item 14 is "airtime", the number printed in the list
+```
+
+Exit 0, 63 s. Items installed in dependency order: social-seo, brandkit, browser-harness, ecc, marketing, brand-voice,
+remotion-skills, claude-shorts (skill copied, dependencies skipped), airtime. Section 3 printed: venv ready under
+`$S/inst-home/venv`, intro template copied, Remotion packages installed (real `npm install`), `browser-harness: îl ai deja`.
+`$S/inst/plugins/installed_plugins.json` lists airtime at `.../cache/creator-kit/airtime/0.1.0`. After the run `~/.airtime`
+and `~/AirTime` do not exist, and `~/.local/bin` is unchanged (8 entries, old dates). **PASS.**
+
+uv path (second run, `PATH` without `~/.local/bin`, only `uv`/`uvx` symlinked into `$S/uvshim`, plus
+`UV_TOOL_DIR=$S/uv-tools UV_TOOL_BIN_DIR=$S/uv-bin UV_CACHE_DIR=$S/uv-cache UV_PYTHON_INSTALL_DIR=$S/uv-py`): exit 0,
+printed `browser-harness: instalat`; `$S/uv-bin` holds `browser-harness` and `browser-harness-mcp`. The uv log ends with
+`warning: ... uv-bin is not on your PATH`, so the "installed" line is printed although the command is not usable from the
+shell. Every other item printed "(actualizat)" (rerun updates; the `--force` of `uv tool install` reinstalls each time).
+Observed, as expected from `setup-mac.sh:565-572`. **PASS for the uv path executing; the PATH message is a finding below.**
+
+### Step 2: check (observed)
+
+`bash setup-mac.sh --check` (same env) ticks ecc, marketing, brand-voice, remotion-skills, claude-shorts, airtime, and the
+`AirTime:` block shows ticks for ffmpeg, ffprobe, node, venv AirTime, shorts, shorts venv, remotion, ecc, marketing,
+brand-voice, with:
+
+```
+  ✘ social-seo: skill-ul nu e instalat → AIRTIME-INSTALL.md#unelte
+  ✘ YouTube: canalul nu e conectat → AIRTIME-INSTALL.md#youtube
+  … Instagram: se verifică în conversație („AirTime check”) → AIRTIME-INSTALL.md#instagram
+```
+
+`check.sh --quick` of the installed copy (`$S/inst/plugins/cache/creator-kit/airtime/0.1.0/scripts/check.sh`, exit 1) prints
+the same 13 lines. **FAIL against the expected result**: besides YouTube and the Instagram message there is one more
+cross: social-seo (finding 1). The skill IS installed (`plugins/cache/creator-kit/social-seo/<sha>/SKILL.md`).
+
+### Step 3: run C on the installed copy (observed)
+
+Plugin dir: `make_e2e_copy.sh` from `$S/inst/plugins/cache/creator-kit/airtime/0.1.0` into `$S/airtime-e2e/plugin-c14`
+(doubles replace `scripts/youtube.py` and `scripts/check.sh`). `AIRTIME_HOME=$S/inst-home` (a `principal` profile and
+`speed.json` written there with the same snippet as `run.sh prep`), `AIRTIME_RUNS=$S/airtime-e2e/runs-c14`,
+`CLAUDE_CONFIG_DIR=$S/cfg-test` (logged-in profile), `SHORTS_ROOT` as in Task 10 (`shorts-e2e`: the install here skipped
+the shorts dependencies). To parametrise paths, `run.sh` got env overrides `C_NAME C_HOME C_RUNS C_PLUGIN C_FAKECFG`;
+defaults are the Task 10 paths and names, so `run.sh c` / `checkc` behave as before.
+
+```
+C_NAME=runC14 C_HOME=... C_RUNS=... C_PLUGIN=... C_FAKECFG=... bash airtime/tests/e2e/run.sh c      # 12m57s, success, 19 turns
+C_NAME=runC14 bash airtime/tests/e2e/run.sh checkc
+tool calls: {'Skill': 1, 'Bash': 40, 'Agent': 4, 'Read': 12, 'Write': 8}
+youtube upload/verify without --dry-run: none
+browser tool calls: none
+refusal log: empty or absent
+```
+
+The run stopped at the confirmation table (YouTube 2026-11-14 18:00; three reels 15, 16, 17 Nov 19:00; Facebook "Nu");
+it said that nothing was uploaded or scheduled. Run folder `runs-c14/2026-11-12-antrenament-spate-test-sedinta` holds
+`youtube.mp4`, `reels/short_02_ig.mp4`, `short_06_ig.mp4`, `short_07_ig.mp4`, `calendar.json`, `youtube-meta.json`.
+Real-home scan (`logs/scan2.py runC14`): 6 references, all reads (the `expanduser("~/.claude")` fallback and a
+`find`/`cat` of `$HOME/.claude/plugins/installed_plugins.json`), 0 writes; `~/.airtime` and `~/AirTime` absent.
+**PASS** (same result as Task 10). The reply also said "skill-ul `social-seo` nu era instalat": the same false negative as
+step 2, so the texts were written without that skill (finding 1).
+
+### Found, not fixed
+
+1. `check.sh` `plugin_present NAME skill` looks for `<installPath>/skills/NAME/SKILL.md`, but social-seo installs as a
+   plugin with `SKILL.md` at the plugin root. The installed skill is reported missing in `--check`, `check.sh --quick` and by
+   the agent in run C. The e2e fake config uses the `skills/<name>/` layout, so Task 10 could not show it. The installer's
+   own `requires_of()` treats the dependency as satisfied, so the two disagree.
+2. `setup-mac.sh:693-700`: `uv tool install` can succeed with the tool dir off PATH; the script still prints
+   `browser-harness: instalat` and the user cannot run it. Reruns also reinstall with `--force`.
+3. `shorts venv` ticks while `SKIP_SHORTS_DEPS=1` left the installed shorts without a venv: `reels.shorts_python()` fell
+   back to the real `~/.shorts-skill/bin/python3`. Correct as a lookup order, but the check can pass on a machine other than
+   the installed profile.
+4. The run C agent still reads `$HOME/.claude/plugins/installed_plugins.json` (see Task 10 findings): not changed by the
+   install.
+
 ## How to repeat
 
 ```bash

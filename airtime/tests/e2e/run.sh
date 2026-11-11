@@ -20,14 +20,16 @@ export PATH="$S/ffshim:$HOME/.local/node/bin:$PATH"
 CFG="$S/cfg-test"                 # isolated, already logged in; never modified by the test
 CLIP_DIR="$SCR/in"
 LOGS="$SCR/logs"
+C_NAME="${C_NAME:-runC}"; C_REF="$(printf %s "${C_NAME#run}" | tr A-Z a-z)"   # Task 14 overrides: C_NAME, C_HOME, C_RUNS, C_PLUGIN, C_FAKECFG (defaults = Task 10 paths)
 mkdir -p "$LOGS"
 cd "$SCR"   # Remotion downloads its headless Chrome into ./.remotion of the current folder: keep it out of the worktree
 
 # CLAUDE_PLUGIN_ROOT is exported by hand: with --plugin-dir the agent's Bash does not get it and cfg-test has no
 # installed_plugins.json, so the agent's environment preamble finds no plugin root (see e2e.md, "Found in the plugin").
 env_ab() { export AIRTIME_HOME="$SCR/home" AIRTIME_RUNS="$SCR/runs-ab" SHORTS_ROOT="$SCR/shorts-e2e" CLAUDE_CONFIG_DIR="$CFG" CLAUDE_PLUGIN_ROOT="$PLUGIN"; }
-env_c()  { export AIRTIME_HOME="$SCR/home" AIRTIME_RUNS="$SCR/runs-c" SHORTS_ROOT="$SCR/shorts-e2e" CLAUDE_CONFIG_DIR="$CFG" \
-                  CLAUDE_PLUGIN_ROOT="$SCR/plugin-c" AIRTIME_E2E_FAKE_CFG="$SCR/fakecfg" AIRTIME_E2E_REFUSAL_LOG="$LOGS/refused-c.log"; }
+env_c()  { export AIRTIME_HOME="${C_HOME:-$SCR/home}" AIRTIME_RUNS="${C_RUNS:-$SCR/runs-c}" SHORTS_ROOT="$SCR/shorts-e2e" CLAUDE_CONFIG_DIR="$CFG" \
+                  CLAUDE_PLUGIN_ROOT="${C_PLUGIN:-$SCR/plugin-c}" AIRTIME_E2E_FAKE_CFG="${C_FAKECFG:-$SCR/fakecfg}" \
+                  AIRTIME_E2E_REFUSAL_LOG="$LOGS/refused-$C_REF.log"; }
 
 clip() { ls "$CLIP_DIR"/*.mov | head -1; }
 rundir() { cat "$SCR/rundir-ab.txt"; }
@@ -124,14 +126,14 @@ La final răspunde cu cele patru blocuri întoarse, unul sub altul."
   ;;
 c)
   env_c
-  claude_run runC "$SCR/plugin-c" "Agent,Bash,Read,Write,Glob,Grep,Skill" "AirTime
+  claude_run "$C_NAME" "${C_PLUGIN:-$SCR/plugin-c}" "Agent,Bash,Read,Write,Glob,Grep,Skill" "AirTime
 Clipul e $(clip)
 Vocea nu e înregistrată separat. Facebook: nu. YouTube Shorts: nu. Data clipului lung: 2026-11-14.
 Aprobă toate tăieturile propuse, fără să scoți niciuna. Pentru reels alege candidații 1, 2 și 3, cu stilul bold.
 Aici sunt toate răspunsurile; nu pune întrebări. Oprește-te când arăți tabelul final cu calendarul și textele complete: nu urca și nu programa nimic."
   ;;
 checkc)
-  "$PY" - "$LOGS/runC.jsonl" "$LOGS/refused-c.log" <<'PYEOF'
+  "$PY" - "$LOGS/$C_NAME.jsonl" "$LOGS/refused-$C_REF.log" <<'PYEOF'
 import json, re, sys
 from pathlib import Path
 tr = Path(sys.argv[1]); refused = Path(sys.argv[2])
