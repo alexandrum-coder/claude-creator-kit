@@ -91,7 +91,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 
 | Plugin | Sursă | Ce aduce |
 |---|---|---|
-| `creator-skills` | acest repo | 14 skill-uri, explicate mai jos; fiecare e plugin separat, deci se instalează doar ce lipsește |
+| `creator-skills` | acest repo (plus `browser-harness`, legat direct) | 15 skill-uri, explicate mai jos; fiecare e plugin separat, deci se instalează doar ce lipsește |
 | `marketingskills` | coreyhaines31/marketingskills (MIT), legat direct | 4 skill-uri: `social`, `video`, `content-strategy`, `copy-editing` |
 | `youtube-transcript` | jkawamoto/mcp-youtube-transcript (MIT) | server MCP: transcrieri și informații despre clipuri YouTube, fără cheie API |
 | `ecc` | affaan-m/ecc | peste 300 de skill-uri, 71 de agenți, 98 de comenzi. Cele mai multe sunt pentru programatori; pentru tine contează cele de video, prezentări, conținut și marketing din tabelele de mai sus. Scriptul îi oprește hook-urile de programare care te-ar încurca. |
@@ -105,6 +105,33 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `postiz` | Postiz, prin catalogul Anthropic | programare și publicare pe 28+ rețele, statistici; cere cont Postiz (cloud plătit sau server propriu gratuit) |
 | `claude-shorts` | AgriciDaniel/claude-shorts (MIT), skill separat în `~/.claude/skills/shorts` | reels și shorts verticale din video lung, cu subtitrări animate; își instalează uneltele Python și Node |
 | skill-uri Anthropic | vin cu contul Claude | PowerPoint, Word, Excel, PDF, documente, cercetare aprofundată, teme vizuale |
+| `airtime` | acest repo | un singur clip devine montaj propus, video YouTube programat și 3-5 reels Instagram programate; explicat mai jos |
+
+## AirTime
+
+**Ce face.** Pornește de la un singur clip filmat de tine. Propune tăieturile și intro-ul, scrie titlul, descrierea, tag-urile și capitolele pentru YouTube, alege 3-5 momente pentru reels Instagram, cu text și hashtag-uri. Programează video-ul pe YouTube și reels-urile câte unul pe zi, dar numai după ce scrii „da” sau „confirm” la tabelul final. Nu se taie nimic din porțiunile de demonstrație.
+
+**De ce are nevoie.** Se instalează odată cu el, dintr-o comandă (`--doar "14"`, vezi [README.md](README.md#airtime)):
+
+| Dependență | Pentru ce |
+|---|---|
+| `node`, `ffmpeg`, `uv` | montaj, intro, unealta browser-harness |
+| `ecc` | montaj video și conținut |
+| `marketing`, `brand-voice` | descrieri și voce de brand |
+| `remotion-skills` | intro-ul animat |
+| `claude-shorts` | reels verticale cu subtitrări |
+| `social-seo`, `brandkit`, `browser-harness` | texte găsite în căutare, culori, rezerva pentru browser (numai aceste trei skill-uri din `creator-skills`) |
+
+Conectarea la YouTube și Instagram se face o singură dată, cu „AirTime conectare”; ghidul e în [AIRTIME-INSTALL.md](AIRTIME-INSTALL.md).
+
+**Cuvinte de pornire.**
+
+| Scrii | Ce se întâmplă |
+|---|---|
+| „AirTime” | rulează cu profilul implicit și îți cere clipul |
+| „AirTime <profil>”, de exemplu „AirTime pilates” | rulează cu alt profil (alte setări, alt canal) |
+| „AirTime check” | verifică uneltele, viteza calculatorului și Business Suite |
+| „AirTime conectare” | conectează YouTube și Instagram |
 
 ## Skill-urile din `creator-skills`
 
@@ -124,6 +151,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `imagegen-frontend-mobile` | imagini de referință pentru o aplicație mobilă |
 | `social-seo` | texte găsite în căutare pe Instagram, YouTube și TikTok |
 | `podcast-insights` | fișă de idei verificabile din podcasturi și interviuri, într-o bibliotecă proprie |
+| `browser-harness` | Claude lucrează într-un browser real (Chrome, cu sesiunea ta deschisă); de la browser-use (MIT), legat direct și fixat pe o versiune; AirTime îl folosește ca rezervă |
 
 ## Neincluse, pentru că cer abonament plătit
 

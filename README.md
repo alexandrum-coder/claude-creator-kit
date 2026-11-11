@@ -19,7 +19,7 @@ Deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipe�
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"
 ```
 
-La pornire scriptul arată lista cu cele 13 unelte, cu ce ai deja marcat, și întreabă:
+La pornire scriptul arată lista cu cele 14 unelte, cu ce ai deja marcat, și întreabă:
 
 ```
 Instalez [T]oate (doar ce lipsește) sau [A]leg eu? (T/a):
@@ -58,7 +58,7 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 
 | Plugin | Pentru ce |
 |---|---|
-| `creator-skills` | 14 skill-uri din acest repo, fiecare instalat separat: humanizer, brandkit, teme pentru prezentări, prompt-master, **prompt-agent** (la prima cerere de lucru îți arată promptul optimizat și pornește doar după ce aprobi), NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) și **podcast-insights** (fișă de idei verificabile din podcasturi) |
+| `creator-skills` | 15 skill-uri, fiecare instalat separat (14 din acest repo, plus `browser-harness` de la browser-use, MIT): humanizer, brandkit, teme pentru prezentări, prompt-master, **prompt-agent** (la prima cerere de lucru îți arată promptul optimizat și pornește doar după ce aprobi), NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) **podcast-insights** (fișă de idei verificabile din podcasturi) și **browser-harness** (Claude lucrează într-un browser real, pe sesiunea ta deschisă) |
 | `ecc` | montaj video, clipuri din cod (Remotion), prezentări HTML animate, sistem de conținut pe rețele |
 | `marketing` | postări, campanii, secvențe email, analiza concurenței (`competitive-brief`), audit SEO (Anthropic) |
 | `design` | feedback pe design-uri (Anthropic) |
@@ -71,6 +71,33 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 | `claude-shorts` (skill separat) | dintr-un video lung găsește momentele bune, le taie vertical pentru Reels, TikTok și Shorts și pune subtitrări animate |
 | `marketingskills` | 4 skill-uri din [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (MIT): `social` (ce postezi, formate, scripturi de reels, calendar), `video`, `content-strategy`, `copy-editing` |
 | `youtube-transcript` (server MCP) | transcrierea și informațiile oricărui clip YouTube, fără cheie API ([jkawamoto/mcp-youtube-transcript](https://github.com/jkawamoto/mcp-youtube-transcript), MIT) |
+| `airtime` | dintr-un singur clip filmat de tine: propunere de montaj, video YouTube programat și 3-5 reels Instagram programate. Vezi [AirTime](#airtime) |
+
+## AirTime
+
+AirTime ia un clip și îți propune un montaj, un titlu cu descriere și capitole pentru YouTube, plus 3-5 reels pentru Instagram. Nu se taie, nu se urcă și nu se programează nimic până nu scrii „da” sau „confirm” la tabelul final.
+
+### Instalare dintr-o comandă
+
+AirTime e ultimul din listă (numărul 14). Scriptul îl instalează împreună cu tot ce are nevoie: `social-seo`, `brandkit` și `browser-harness` (numai aceste trei skill-uri din `creator-skills`), `ecc`, `marketing`, `brand-voice`, `remotion-skills` și `claude-shorts`, plus un mediu Python și șablonul de intro în `~/.airtime`. Ce ai deja nu se instalează a doua oară.
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "14"
+```
+
+### Conectarea, o singură dată
+
+În Claude, tab-ul Code, scrii „AirTime conectare” și Claude te duce pas cu pas:
+
+1. **YouTube:** o cheie Google personală, cam 20 de minute.
+2. **Instagram:** cont Creator, extensia Claude in Chrome și login în Business Suite, cam 10 minute.
+3. **Facebook:** opțional, doar dacă vrei să legi și o Pagină.
+
+Detaliile, cu ce să faci dacă un buton are alt nume, sunt în [AIRTIME-INSTALL.md](AIRTIME-INSTALL.md).
+
+### AirTime check
+
+Scrii „AirTime check” și primești o listă cu ✔ sau ✘ pentru fiecare unealtă (ffmpeg, node, mediul Python, claude-shorts, conectarea la YouTube și Instagram). La ✘ vezi ce lipsește și unde e explicat. Din Terminal, `--check` pe scriptul de instalare arată același bloc „AirTime:” când pluginul e instalat.
 
 ## Postiz gratuit, pe Mac
 
@@ -140,13 +167,14 @@ apoi repornești aplicația cu Cmd+Q. Scriptul actualizează ce ai deja și nu �
 | Claude îți cere „facts” înainte să scrie un fișier | E un hook al pluginului `ecc`, oprit de script în `settings.json`. Repornește aplicația; dacă tot apare, spune-i lui Doru. |
 | Skill-ul de video spune că lipsește `ffmpeg` | Instalează-l cu `brew install ffmpeg` (vezi pasul 2). |
 | „… conține skill-uri sau agenți pe care îi ai deja” | Scriptul nu dublează nimic fără acordul tău. Enter sare peste pachet; `d` îl instalează oricum. |
-| Lângă `creator-skills` scrie „lipsesc 11 din 14” | Ai deja 3 dintre skill-uri din altă parte. Se instalează doar cele 11 care lipsesc. |
+| Lângă `creator-skills` scrie „lipsesc 12 din 15” | Ai deja 3 dintre skill-uri din altă parte. Se instalează doar cele 12 care lipsesc. |
 
 ## Ce e în repo
 
 | Fișier | Rol |
 |---|---|
 | `setup-mac.sh` | instalarea și actualizarea, descrise mai sus |
+| `airtime/`, `AIRTIME-INSTALL.md` | pluginul AirTime și ghidul lui de instalare și conectare |
 | `postiz-local.sh` | Postiz gratuit pe Mac (Colima + Docker) |
 | `CATALOG.md` | ce să folosești pentru prezentări, video și postări, cu exemple |
 | `CATALOG-COMPLET.md` | fiecare skill, agent și comandă instalată, generat automat |
