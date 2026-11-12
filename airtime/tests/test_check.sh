@@ -84,6 +84,7 @@ E="$(make_env good)"
 run_check "$E" --quick
 [ "$RC" = 0 ] && ok "all pass: exit 0" || { fail "all pass: exit $RC"; echo "$OUT"; }
 case "$OUT" in *"✘"*) fail "all pass: unexpected ✘"; echo "$OUT" ;; *) ok "all pass: no ✘" ;; esac
+case "$OUT" in *"! ffmpeg fără zscale"*"Video HDR"*) ok "zscale info line (!, not ✘)" ;; *) fail "zscale info line missing" ;; esac
 case "$OUT" in *"Instagram: se verifică în conversație"*) ok "instagram info line" ;; *) fail "instagram info line missing" ;; esac
 [ ! -e "$E/ahome/speed.json" ] && ok "quick writes no speed.json" || fail "quick wrote speed.json"
 echo "$OUT" | grep -q 's[â]nt' && fail "forbidden spelling in output"

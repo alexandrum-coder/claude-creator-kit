@@ -290,3 +290,93 @@ def test_apply_sdr_has_no_tonemap(tmp_path, monkeypatch):
     silences.apply_cuts("in.mp4", [], str(tmp_path / "o.mp4"))
     graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
     assert "tonemap" not in graph and "-color_trc" not in seen["cmd"]
+
+
+# ---- I5 follow-up: ffmpeg without zscale (Homebrew build has no libzimg)
+
+FILTERS_WITH = " ... zscale  V->V  Apply resizing, colorspace and bit depth conversions.\n T. tonemap V->V Conversion to/from.\n"
+FILTERS_WITHOUT = " T.. tonemap V->V Conversion.\n ... scale V->V Scale the input video.\n"
+
+
+def _fake_apply_env(monkeypatch, filters_text, transfer="arib-std-b67"):
+    silences.has_filter.cache_clear()
+    seen = {}
+    monkeypatch.setattr(silences, "probe_duration", lambda v: 10.0)
+    monkeypatch.setattr(silences, "has_audio", lambda v: False)
+    monkeypatch.setattr(silences, "color_transfer", lambda v: transfer)
+
+    def fake_run(cmd):
+        if cmd[:3] == ["ffmpeg", "-hide_banner", "-filters"]:
+            return subprocess.CompletedProcess(cmd, 0, stdout=filters_text, stderr="")
+        seen["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(silences, "_run", fake_run)
+    return seen
+
+
+def test_has_filter_parses_and_caches(monkeypatch):
+    _fake_apply_env(monkeypatch, FILTERS_WITH)
+    assert silences.has_filter("zscale") is True
+    assert silences.has_filter("nosuch") is False
+    silences.has_filter.cache_clear()
+    _fake_apply_env(monkeypatch, FILTERS_WITHOUT)
+    assert silences.has_filter("zscale") is False
+
+
+def test_apply_hdr_with_zscale_tone_maps(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITH)
+    res = silences.apply_cuts("in.mov", [], str(tmp_path / "o.mp4"))
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert "zscale" in graph and "tonemap" in graph
+    assert "-color_trc" in seen["cmd"]
+    assert "warnings" not in res
+
+
+def test_apply_hdr_without_zscale_skips_tone_map_and_warns(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT)
+    res = silences.apply_cuts("in.mov", [{"id": 1, "start": 2.0, "end": 3.0, "reason": "p", "text": ""}],
+                              str(tmp_path / "o.mp4"))
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert "zscale" not in graph and "tonemap" not in graph
+    assert "-color_trc" not in seen["cmd"]
+    assert graph.count("trim=") == 2  # cuts still applied
+    assert res["keep"] == [[0.0, 2.0], [3.0, 10.0]]
+    (w,) = res["warnings"]
+    assert "Video HDR" in w and "spălate" in w and "iPhone" in w
+
+
+def test_apply_sdr_never_checks_filters(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    res = silences.apply_cuts("in.mp4", [], str(tmp_path / "o.mp4"))
+    assert "warnings" not in res and "cmd" in seen
+
+
+def test_cli_apply_warning_is_printed(tmp_path, monkeypatch, capsys):
+    _fake_apply_env(monkeypatch, FILTERS_WITHOUT)
+    cuts = tmp_path / "cuts.json"
+    cuts.write_text(json.dumps({"cuts": []}))
+    rc = silences.main(["apply", "--video", "in.mov", "--cuts", str(cuts), "--out", str(tmp_path / "o.mp4"),
+                        "--map", str(tmp_path / "map.json")])
+    assert rc == 0
+    assert "Video HDR" in json.loads(capsys.readouterr().out)["warnings"][0]
+
+
+def test_cli_apply_ffmpeg_failure_is_json_error(tmp_path, monkeypatch, capsys):
+    silences.has_filter.cache_clear()
+    monkeypatch.setattr(silences, "probe_duration", lambda v: 10.0)
+    monkeypatch.setattr(silences, "has_audio", lambda v: False)
+    monkeypatch.setattr(silences, "color_transfer", lambda v: "bt709")
+
+    def boom(cmd):
+        raise subprocess.CalledProcessError(1, cmd, output="", stderr="x" * 5000 + "No such filter: 'zscale'")
+
+    monkeypatch.setattr(silences, "_run", boom)
+    cuts = tmp_path / "cuts.json"
+    cuts.write_text(json.dumps({"cuts": []}))
+    rc = silences.main(["apply", "--video", "in.mov", "--cuts", str(cuts), "--out", str(tmp_path / "o.mp4"),
+                        "--map", str(tmp_path / "map.json")])
+    out = capsys.readouterr()
+    assert rc == 1
+    err = json.loads(out.out)["error"]
+    assert "No such filter" in err and len(err) < 2000 and "Traceback" not in out.err

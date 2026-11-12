@@ -7,6 +7,7 @@ Cuts are only proposals. Demonstration regions are never cut.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import subprocess
@@ -268,6 +269,21 @@ def tonemap_filter(transfer: str) -> str:
             "zscale=t=bt709:m=bt709:r=tv,format=yuv420p" % transfer)
 
 
+@functools.lru_cache(maxsize=None)
+def has_filter(name: str) -> bool:
+    """True if the local ffmpeg lists the filter (Homebrew's build has no zscale: no libzimg)."""
+    try:
+        r = _run(["ffmpeg", "-hide_banner", "-filters"])
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return any(len(l.split()) > 1 and l.split()[1] == name for l in r.stdout.splitlines())
+
+
+HDR_WARNING = ("Clipul e filmat în HDR, dar ffmpeg de pe acest calculator nu poate converti culorile. "
+               "Culorile pot ieși spălate. Pe iPhone, la Configurări → Cameră → Formate, oprește "
+               "„Video HDR” și filmează din nou, dacă diferența te deranjează.")
+
+
 def parse_freeze_edges(stderr: str, duration: float, tol: float = 0.25) -> list[tuple[float, float]]:
     """Freeze spans touching the start or the end of the clip, from freezedetect output."""
     starts = [float(x) for x in re.findall(r"freeze_start:\s*([0-9.]+)", stderr)]
@@ -301,6 +317,10 @@ def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
             parts.append("[0:a]atrim=start=%.6f:end=%.6f,asetpts=PTS-STARTPTS[a%d]" % (a, b, i))
             labels += "[a%d]" % i
     tonemap = tonemap_filter(color_transfer(video))
+    warnings = []
+    if tonemap and not has_filter("zscale"):
+        tonemap = ""
+        warnings.append(HDR_WARNING)
     vout = "[vc]" if tonemap else "[v]"
     parts.append("%sconcat=n=%d:v=1:a=%d%s%s" % (labels, len(keep), 1 if audio else 0, vout, "[a]" if audio else ""))
     if tonemap:
@@ -315,7 +335,10 @@ def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
         cmd += ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
     cmd += ["-movflags", "+faststart", str(out)]
     _run(cmd)
-    return {"duration": duration, "keep": [[a, b] for a, b in keep]}
+    res = {"duration": duration, "keep": [[a, b] for a, b in keep]}
+    if warnings:
+        res["warnings"] = warnings
+    return res
 
 
 def extract_frame(video: str, t: float, out: Path) -> None:
@@ -356,7 +379,15 @@ def cmd_propose(a) -> int:
 def cmd_apply(a) -> int:
     data = _load_json(a.cuts)
     cuts = data["cuts"] if isinstance(data, dict) else data
-    _write_json(a.map, apply_cuts(a.video, cuts, a.out))
+    try:
+        res = apply_cuts(a.video, cuts, a.out)
+    except subprocess.CalledProcessError as e:
+        print(json.dumps({"error": "ffmpeg a eșuat: %s" % (e.stderr or "")[-1500:].strip(), "step": "apply"},
+                         ensure_ascii=False))
+        return 1
+    _write_json(a.map, res)
+    if res.get("warnings"):
+        print(json.dumps({"warnings": res["warnings"]}, ensure_ascii=False))
     return 0
 
 

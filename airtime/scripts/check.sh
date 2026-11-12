@@ -56,6 +56,15 @@ for t in ffmpeg ffprobe node; do
   else check "$t" 0 unelte "lipsește"; fi
 done
 
+# Informational only (never ✘): without zscale, iPhone HDR clips keep washed-out colours.
+if command -v ffmpeg >/dev/null 2>&1; then
+  if ffmpeg -hide_banner -filters 2>/dev/null | grep -q ' zscale '; then
+    out "✔ ffmpeg zscale (clipurile iPhone HDR se convertesc corect)"
+  else
+    out "! ffmpeg fără zscale: clipurile iPhone HDR pot ieși cu culori spălate; oprește „Video HDR” în Configurări → Cameră → Formate → AIRTIME-INSTALL.md#probleme"
+  fi
+fi
+
 # ---------------------------------------------------------------- venvs
 if [ -x "$AIRTIME_HOME/venv/bin/python" ] \
    && "$AIRTIME_HOME/venv/bin/python" -c "import googleapiclient, google_auth_oauthlib" >/dev/null 2>&1; then
