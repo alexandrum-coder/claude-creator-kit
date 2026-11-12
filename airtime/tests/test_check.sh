@@ -114,6 +114,16 @@ mkdir -p "$E/cfg/skills/social-seo"; : > "$E/cfg/skills/social-seo/SKILL.md"
 run_check "$E" --quick
 case "$OUT" in *"✘ social-seo"*) fail "social-seo from config skills not found" ;; *) ok "social-seo from config skills" ;; esac
 
+# 4b. Real social-seo layout: SKILL.md at the plugin root, no skills/ folder.
+E="$(make_env rootskill)"
+mkdir -p "$E/plug2"; : > "$E/plug2/SKILL.md"
+rm "$E/plug/skills/social-seo/SKILL.md"
+cat > "$E/cfg/plugins/installed_plugins.json" <<JEOF
+{"version":2,"plugins":{"ecc@m":[{"installPath":"$E/plug"}],"marketing@m":[{"installPath":"$E/plug"}],"brand-voice@m":[{"installPath":"$E/plug"}],"social-seo@creator-kit":[{"installPath":"$E/plug2"}]}}
+JEOF
+run_check "$E" --quick
+case "$OUT" in *"✔ social-seo"*) ok "social-seo with SKILL.md at plugin root" ;; *) fail "social-seo at plugin root not found"; echo "$OUT" ;; esac
+
 # 5. Failing shorts venv import and missing remotion.
 E="$(make_env nodeps)"
 printf '#!/bin/bash\nexit 1\n' > "$E/home/.shorts-skill/bin/python3"

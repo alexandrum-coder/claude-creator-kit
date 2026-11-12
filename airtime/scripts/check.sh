@@ -90,7 +90,7 @@ else
 fi
 
 # -------------------------------------------------------------- plugins
-# plugin_present NAME KIND: kind "plugin" = key starts with NAME@; kind "skill" = SKILL.md in a plugin or in config skills.
+# plugin_present NAME KIND: kind "plugin" = key starts with NAME@; kind "skill" = SKILL.md at a plugin root, in a plugin skills/NAME/, or in config skills.
 plugin_present() {
   python3 - "$CFG" "$1" "$2" <<'PYEOF' >/dev/null 2>&1
 import json, sys
@@ -106,7 +106,8 @@ if (cfg / "skills" / name / "SKILL.md").exists():
     sys.exit(0)
 for entries in plugins.values():
     for e in entries or []:
-        if (Path(e.get("installPath", "")) / "skills" / name / "SKILL.md").exists():
+        ip = Path(e.get("installPath", ""))
+        if (ip / "SKILL.md").exists() or (ip / "skills" / name / "SKILL.md").exists():
             sys.exit(0)
 sys.exit(1)
 PYEOF
