@@ -18,6 +18,20 @@ Agentul rulează ca subagent și nu poate pune singur întrebări. Ultima linie 
 - `STARE: ÎNTREBARE`: îți pune întrebările cu bife. Poți bifa mai multe opțiuni și să scrii la „Other” în același timp. La final apare mereu „Observații extra?”. Răspunsul tău ajunge la același agent, care continuă de unde a rămas.
 - `STARE: ACȚIUNE`: conversația principală pornește imediat skill-urile din linia `ACȚIUNE:`. Acolo pot apărea doar skill-uri. Orice altceva devine întrebare.
 
+## Prima pornire: profilul de brand
+
+După instalarea kitului, prima cerere trece întâi prin skill-ul `kit-onboarding`. Te întreabă o singură dată dacă vrei să-ți definești profilul de brand. Dacă spui da, îți cere pe rând numele, logo-ul, culorile, fonturile și tonul. Profilul îl folosesc toate uneltele din kit. Culorile și tonul ajung și în profilul implicit AirTime. La final, opțional, brandkit îți generează o planșă de brand.
+
+Apoi îți propune setările inițiale, numai pentru uneltele instalate: AirTime conectare (YouTube Studio și Meta Business Suite), autorizarea Canva, tonul brandului din postările existente (brand-voice) și AirTime check. Bifezi ce faci acum.
+
+Dacă refuzi, nu te mai întreabă. Îl pornești oricând scriind „onboarding”.
+
+| Fișier | Ce ține |
+|---|---|
+| `~/.claude/creator-kit/brand/brand.md` | profilul de brand |
+| `~/.claude/creator-kit/brand/logo.*` | o copie a logo-ului |
+| `~/.claude/creator-kit/onboarding.json` | ce s-a făcut: brand definit sau refuzat, setări propuse |
+
 ## Varianta B, în terminal
 
 Când cererea pare o discuție lungă, cu multe runde de întrebări, agentul îți recomandă să vorbești direct cu el, într-o sesiune separată, și îți spune de ce:
@@ -59,6 +73,7 @@ python3 scripts/test_inventar.py
 
 ```
 agents/personal-assistant.md   agentul
+skills/kit-onboarding/SKILL.md onboarding-ul de după instalare
 references/reguli.md           regulile de rutare
 scripts/inventar.py            inventarul, cu cache
 scripts/test_inventar.py       testele inventarului

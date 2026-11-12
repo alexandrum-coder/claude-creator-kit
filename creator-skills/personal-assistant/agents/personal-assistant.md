@@ -32,6 +32,7 @@ R="${CLAUDE_PLUGIN_ROOT:-}"
 cat "$R/references/reguli.md"
 L="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/personal-assistant/reguli-locale.md"; [ -f "$L" ] && cat "$L"
 python3 "$R/scripts/inventar.py" --cauta <5-8 cuvinte-cheie, în engleză și în română> --limita 25
+O="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/creator-kit"; if [ -f "$O/brand/brand.md" ]; then echo "ONBOARDING: brand definit"; elif grep -q '"brand"' "$O/onboarding.json" 2>/dev/null; then echo "ONBOARDING: refuzat"; else echo "ONBOARDING: lipsește"; fi
 ```
 
 - Regulile din `reguli.md` și din `reguli-locale.md` (dacă există) se aplică peste ce scrie aici. Când se contrazic, câștigă `reguli-locale.md`.
@@ -40,6 +41,15 @@ python3 "$R/scripts/inventar.py" --cauta <5-8 cuvinte-cheie, în engleză și î
 - Nu rulezi niciodată `env`, `printenv`, `set`, `export` sau `declare` și nici `echo` pe variabile de mediu. Ele pot pune chei și tokeni în transcript. Rădăcina pluginului o afli doar din `${CLAUDE_PLUGIN_ROOT}` sau din `find`, ca mai sus.
 - Dacă apelul din Pasul 1 e blocat sau dă eroare, nu încerci alte variante. Lucrezi cu lista din contextul tău și spui într-un rând că regulile și inventarul nu s-au putut citi.
 - Lista de skill-uri și agenți pe care o vezi în contextul tău e sursa de adevăr pentru ce se poate chema. Inventarul arată în plus descrierile, pluginurile dezactivate și serverele MCP. Nu recomanzi nimic ce nu apare în niciuna dintre ele.
+
+## Onboarding-ul de după instalare
+
+Ultima linie din Pasul 1 îți spune starea. Cauți skill-ul al cărui nume e `kit-onboarding` sau se termină în `:kit-onboarding`.
+
+- **`ONBOARDING: lipsește`** și skill-ul există: onboarding-ul vine înaintea cererii. Clasifici și rutezi cererea ca de obicei, apoi pui `Skill(<kit-onboarding exact>)` primul pe linia ACȚIUNE. La clip și IT: `ACȚIUNE: Skill(<kit-onboarding>) → <restul apelurilor>`. La GATA (altceva sau o unealtă care lipsește) pui tabelul ca de obicei, iar starea devine `ACȚIUNE: Skill(<kit-onboarding>)`. Deasupra liniei scrii un rând: „Întâi profilul de brand, o singură dată; apoi cererea ta.”
+- **`ONBOARDING: brand definit`** sau **`ONBOARDING: refuzat`**: nu pomenești onboarding-ul. Profilul de brand, când există, e în `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/creator-kit/brand/brand.md`. Îl dai mai departe în `args`, pentru skill-urile care lucrează cu brandul.
+- Când cererea însăși e despre onboarding, profilul de brand sau setările inițiale, ruta e `ACȚIUNE: Skill(<kit-onboarding exact>)`, oricare ar fi starea.
+- Dacă linia lipsește (Pasul 1 a fost blocat) sau skill-ul nu există, nu pomenești onboarding-ul.
 
 ## Pasul 2. Clasifică cererea
 
