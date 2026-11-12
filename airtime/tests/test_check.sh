@@ -127,6 +127,18 @@ JEOF
 run_check "$E" --quick
 case "$OUT" in *"✔ social-seo"*) ok "social-seo with SKILL.md at plugin root" ;; *) fail "social-seo at plugin root not found"; echo "$OUT" ;; esac
 
+# 4c. marketing only as an account/Cowork plugin (no installed_plugins.json entry): ✔.
+E="$(make_env accountplug)"
+cat > "$E/cfg/plugins/installed_plugins.json" <<JEOF
+{"version":2,"plugins":{"ecc@m":[{"installPath":"$E/plug"}],"brand-voice@m":[{"installPath":"$E/plug"}]}}
+JEOF
+run_check "$E" --quick
+case "$OUT" in *"✘ marketing"*) ok "marketing absent everywhere: ✘" ;; *) fail "marketing absent: no ✘"; echo "$OUT" ;; esac
+AP="$E/home/Library/Application Support/Claude/local-agent-mode-sessions/s1/u1/rpm/plugin_01abc/.claude-plugin"
+mkdir -p "$AP"; echo '{"name":"marketing","version":"1.2.0"}' > "$AP/plugin.json"
+run_check "$E" --quick
+case "$OUT" in *"✔ marketing"*) ok "marketing from account plugins: ✔" ;; *) fail "account plugin marketing not found"; echo "$OUT" ;; esac
+
 # 5. Failing shorts venv import and missing remotion.
 E="$(make_env nodeps)"
 printf '#!/bin/bash\nexit 1\n' > "$E/home/.shorts-skill/bin/python3"

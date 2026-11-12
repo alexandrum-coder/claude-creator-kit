@@ -125,17 +125,28 @@ fi
 
 # -------------------------------------------------------------- plugins
 # plugin_present NAME KIND: kind "plugin" = key starts with NAME@; kind "skill" = SKILL.md at a plugin root, in a plugin skills/NAME/, or in config skills.
+# Both kinds also look at the account and Cowork plugins the desktop app keeps (the same
+# place setup-mac.sh scans): a plugin such as marketing can come from the account only,
+# with no entry in installed_plugins.json, and still load in the Code tab.
+APP_DIR="${CREATOR_KIT_APP_DIR:-$HOME/Library/Application Support/Claude}"
 plugin_present() {
-  python3 - "$CFG" "$1" "$2" <<'PYEOF' >/dev/null 2>&1
+  python3 - "$CFG" "$1" "$2" "$APP_DIR" <<'PYEOF' >/dev/null 2>&1
 import json, sys
 from pathlib import Path
-cfg, name, kind = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+cfg, name, kind, app = Path(sys.argv[1]), sys.argv[2], sys.argv[3], Path(sys.argv[4])
 try:
     plugins = json.loads((cfg / "plugins" / "installed_plugins.json").read_text()).get("plugins", {})
 except Exception:
     plugins = {}
+# Account and Cowork plugins: {plugin name: plugin root}.
+account = {}
+for pj in app.glob("local-agent-mode-sessions/*/*/rpm/plugin_*/.claude-plugin/plugin.json"):
+    try:
+        account.setdefault(json.loads(pj.read_text()).get("name", ""), pj.parent.parent)
+    except Exception:
+        pass
 if kind == "plugin":
-    sys.exit(0 if any(k.startswith(name + "@") for k in plugins) else 1)
+    sys.exit(0 if any(k.startswith(name + "@") for k in plugins) or name in account else 1)
 if (cfg / "skills" / name / "SKILL.md").exists():
     sys.exit(0)
 for entries in plugins.values():
@@ -143,6 +154,8 @@ for entries in plugins.values():
         ip = Path(e.get("installPath", ""))
         if (ip / "SKILL.md").exists() or (ip / "skills" / name / "SKILL.md").exists():
             sys.exit(0)
+if any((root / "skills" / name / "SKILL.md").exists() for root in account.values()):
+    sys.exit(0)
 sys.exit(1)
 PYEOF
 }
