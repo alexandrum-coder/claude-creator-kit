@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude skills for content work, one plugin per skill so an install adds only what is missing: presentations, social posts and SEO, brand, podcasts, prompts for image and video AI.",
-    "version": "2.1.3"
+    "version": "2.1.4"
   },
   "plugins": [
     {
