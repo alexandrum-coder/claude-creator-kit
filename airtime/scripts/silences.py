@@ -250,6 +250,24 @@ def has_audio(video: str) -> bool:
     return bool(r.stdout.strip())
 
 
+HDR_TRANSFERS = ("arib-std-b67", "smpte2084")  # HLG (iPhone HDR / Dolby Vision 8.4), PQ
+
+
+def color_transfer(video: str) -> str:
+    r = _run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+              "stream=color_transfer", "-of", "csv=p=0", str(video)])
+    return r.stdout.strip().splitlines()[0].strip() if r.stdout.strip() else ""
+
+
+def tonemap_filter(transfer: str) -> str:
+    """zscale+tonemap chain from HDR (bt2020, HLG or PQ) to 8-bit bt709 SDR; "" for SDR input."""
+    if transfer not in HDR_TRANSFERS:
+        return ""
+    return ("zscale=tin=%s:pin=bt2020:min=bt2020nc:t=linear:npl=100,format=gbrpf32le,"
+            "zscale=p=bt709,tonemap=tonemap=hable:desat=0,"
+            "zscale=t=bt709:m=bt709:r=tv,format=yuv420p" % transfer)
+
+
 def parse_freeze_edges(stderr: str, duration: float, tol: float = 0.25) -> list[tuple[float, float]]:
     """Freeze spans touching the start or the end of the clip, from freezedetect output."""
     starts = [float(x) for x in re.findall(r"freeze_start:\s*([0-9.]+)", stderr)]
@@ -282,12 +300,20 @@ def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
         if audio:
             parts.append("[0:a]atrim=start=%.6f:end=%.6f,asetpts=PTS-STARTPTS[a%d]" % (a, b, i))
             labels += "[a%d]" % i
-    parts.append("%sconcat=n=%d:v=1:a=%d[v]%s" % (labels, len(keep), 1 if audio else 0, "[a]" if audio else ""))
+    tonemap = tonemap_filter(color_transfer(video))
+    vout = "[vc]" if tonemap else "[v]"
+    parts.append("%sconcat=n=%d:v=1:a=%d%s%s" % (labels, len(keep), 1 if audio else 0, vout, "[a]" if audio else ""))
+    if tonemap:
+        # iPhone HDR: tone-map to SDR here, so curat.mp4 (and the intro, reels, Shorts after it) is bt709
+        parts.append("[vc]%s[v]" % tonemap)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-filter_complex", ";".join(parts),
            "-map", "[v]"]
     if audio:
         cmd += ["-map", "[a]", "-c:a", "aac"]
-    cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out)]
+    cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
+    if tonemap:
+        cmd += ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
+    cmd += ["-movflags", "+faststart", str(out)]
     _run(cmd)
     return {"duration": duration, "keep": [[a, b] for a, b in keep]}
 

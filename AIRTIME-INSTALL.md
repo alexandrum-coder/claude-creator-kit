@@ -264,3 +264,7 @@ Unealta AirTime trebuie să aibă ✔, cu dependențele și cele două conexiuni
 **10. Ecranul „Google hasn't verified this app” nu are butonul de continuare**
 - **Cauză:** adresa ta nu e trecută ca Test user, sau aplicația nu e publicată.
 - **Soluție:** la Pasul 3 adaugă-ți adresa la „Test users” și apasă **Publish app**. Apoi reia autorizarea. **(UNVERIFIED — butoanele pot avea alt nume)**
+
+**11. Clipurile filmate cu iPhone au culori spălate sau diferite de intro**
+- **Cauză:** iPhone-urile noi filmează implicit în HDR (Dolby Vision). AirTime convertește clipul în culori obișnuite (SDR) la montaj, dar conversia nu arată niciodată la fel de bine ca un clip filmat direct în SDR.
+- **Soluție:** pe iPhone, **Configurări** → **Cameră** → **Formate** → oprește **Video HDR**. Clipurile filmate de atunci încolo intră în AirTime fără conversie. **(UNVERIFIED — butoanele pot avea alt nume)**

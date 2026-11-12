@@ -238,3 +238,55 @@ def test_cli_propose_edge_cuts_from_freeze(tmp_path, capsys, with_words, voiceov
     assert (d / "frames" / ("cut_%s.jpg" % cuts[0]["id"])).exists()
     err = capsys.readouterr().err
     assert ("nu are vorbire" in err) == (not with_words)
+
+
+def _color(path):
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                          "stream=color_transfer,color_primaries,pix_fmt", "-of", "json", str(path)],
+                         check=True, capture_output=True, text=True).stdout
+    return json.loads(out)["streams"][0]
+
+
+def test_tonemap_chain_only_for_hdr():
+    assert silences.tonemap_filter("bt709") == ""
+    assert silences.tonemap_filter("") == ""
+    hlg = silences.tonemap_filter("arib-std-b67")
+    pq = silences.tonemap_filter("smpte2084")
+    for f in (hlg, pq):
+        assert "tonemap=" in f and "zscale" in f and f.endswith("format=yuv420p")
+    assert "tin=arib-std-b67" in hlg and "tin=smpte2084" in pq
+
+
+def test_apply_tone_maps_iphone_hlg(tmp_path):
+    """iPhone HDR (HLG, 10-bit, bt2020) comes out of apply as 8-bit bt709 SDR."""
+    video = tmp_path / "iPhone HDR ș.mov"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=3",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=3",
+         "-vf", "format=yuv420p10le", "-c:v", "libx265",
+         "-x265-params", "log-level=error:colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc",
+         "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc",
+         "-tag:v", "hvc1", "-c:a", "aac", "-shortest", str(video)],
+        check=True,
+    )
+    assert silences.color_transfer(str(video)) == "arib-std-b67"
+    cuts = tmp_path / "cuts.json"
+    cuts.write_text(json.dumps({"cuts": [{"id": 1, "start": 1.0, "end": 1.5, "reason": "pauza", "text": ""}]}))
+    out, mp = tmp_path / "curat.mp4", tmp_path / "map.json"
+    assert silences.main(["apply", "--video", str(video), "--cuts", str(cuts), "--out", str(out),
+                          "--map", str(mp)]) == 0
+    c = _color(out)
+    assert c["pix_fmt"] == "yuv420p"
+    assert c.get("color_transfer") == "bt709"
+    assert c.get("color_primaries") == "bt709"
+
+
+def test_apply_sdr_has_no_tonemap(tmp_path, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(silences, "probe_duration", lambda v: 10.0)
+    monkeypatch.setattr(silences, "has_audio", lambda v: False)
+    monkeypatch.setattr(silences, "color_transfer", lambda v: "bt709")
+    monkeypatch.setattr(silences, "_run", lambda cmd: seen.setdefault("cmd", cmd))
+    silences.apply_cuts("in.mp4", [], str(tmp_path / "o.mp4"))
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert "tonemap" not in graph and "-color_trc" not in seen["cmd"]
