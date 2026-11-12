@@ -2,7 +2,7 @@
 
 Un set de skill-uri și pluginuri pentru aplicația Claude, ales pentru conținut: prezentări, clipuri video pentru social media, postări, brand. Pregătit de Doru Maican pentru colegi.
 
-Durează cam 15 minute. La final ai în aplicația Claude, în tab-ul **Code**, câteva sute de skill-uri noi. Ce face fiecare și pe care să le folosești primele: [CATALOG.md](CATALOG.md).
+Durează cam 15 minute. La final ai în aplicația Claude, în tab-ul **Code**, câteva sute de skill-uri noi. Ce face fiecare și pe care să le folosești primele: [CATALOG.md](CATALOG.md). Rezumatul pe o pagină (unelte, spațiu pe disc, conectări) e în [creator-kit.html](creator-kit.html): descarcă-l și deschide-l în browser.
 
 ## Ce îți trebuie
 

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ro">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Creator Kit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one white column. Title, install command, space needed, one table, the skill list. Single light theme by choice. */
+:root {
+  --bg: #FFFFFF;
+  --ink: #15201A;
+  --muted: #5F6B64;
+  --line: #E3E7E4;
+  --accent: #1F4FD1;
+  --code-bg: #F2F4F3;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 56px;
+}
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 32px; }
+h1, h2 { font-family: var(--display); text-transform: uppercase; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(40px, 8vw, 60px); line-height: .95; font-weight: 800; }
+h2 { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+p { margin: 0; max-width: 65ch; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+section { display: grid; gap: 12px; min-width: 0; }
+.cmd { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--code-bg); }
+.cmd code { flex: 1; min-width: 0; padding: 12px 14px; font: 500 13px/1.5 var(--mono); overflow-x: auto; white-space: nowrap; }
+.cmd button { border: 0; border-left: 1px solid var(--line); background: var(--accent); color: #fff; font: 600 14px var(--body); padding: 0 16px; cursor: pointer; }
+.cmd button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.space { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; }
+.space div { display: grid; gap: 2px; }
+.space b { font: 700 26px/1 var(--display); font-variant-numeric: tabular-nums; }
+.space span { font-size: 13px; color: var(--muted); }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+td:last-child { color: var(--muted); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+th:last-child { text-align: right; }
+.skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 24px; margin: 0; padding: 0; list-style: none; }
+.skills li { font-size: 14px; color: var(--muted); }
+.skills b { color: var(--ink); font-weight: 600; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.step { display: grid; gap: 8px; align-content: start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.step h3 { margin: 0; font: 700 18px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; display: flex; justify-content: space-between; gap: 8px; }
+.step h3 span { font: 500 12px var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); white-space: nowrap; }
+.step ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.step p { font-size: 13px; color: var(--muted); }
+a { color: var(--accent); }
+@media (max-width: 520px) { td:first-child { white-space: normal; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid; gap:10px">
+    <h1>Creator Kit</h1>
+    <p class="muted">Unelte Claude pentru clipuri, postări și prezentări. Le instalezi cu o singură comandă și alegi doar ce îți trebuie.</p>
+  </header>
+
+  <section>
+    <h2>Instalare</h2>
+    <div class="cmd">
+      <code id="cmd">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)"</code>
+      <button type="button" id="copy">Copiază</button>
+    </div>
+    <p class="muted">Deschide Terminal pe Mac și lipește comanda. Scriptul îți arată lista: apeși Enter pentru toate sau scrii numerele pe care le vrei. Ce ai deja instalat nu se pune a doua oară. La final închide Claude cu Cmd+Q și deschide-l din nou.</p>
+    <p class="muted">Ai nevoie de un cont Claude Pro sau Max.</p>
+  </section>
+
+  <section>
+    <h2>Conectări, o singură dată</h2>
+    <p class="muted">După instalare scrii în Claude „AirTime conectare” și te duce pas cu pas. Pe scurt:</p>
+    <div class="steps">
+      <div class="step">
+        <h3>YouTube Studio <span>~20 min</span></h3>
+        <ol>
+          <li>Rulezi în Terminal comanda pe care ți-o dă Claude.</li>
+          <li>Se deschid pe rând paginile Google Cloud: creezi proiectul AirTime, activezi YouTube Data API și completezi ecranul de consimțământ, pe care îl treci pe „In production”.</li>
+          <li>Creezi o cheie de tip Desktop app și o descarci. Scriptul o găsește singur în Descărcări.</li>
+          <li>Autorizezi contul canalului. La mesajul „Google hasn't verified this app” alegi Advanced și continui; aplicația e doar a ta.</li>
+        </ol>
+        <p>Gata când scriptul afișează numele canalului. Videoclipurile programate apar în YouTube Studio.</p>
+      </div>
+      <div class="step">
+        <h3>Meta Business Suite <span>~10 min</span></h3>
+        <ol>
+          <li>Treci contul Instagram pe profesional, de tip Creator, din aplicație: Setări, apoi Tip de cont.</li>
+          <li>Instalezi în Chrome extensia Claude in Chrome și te loghezi cu contul Claude.</li>
+          <li>Deschizi business.facebook.com în Chrome și intri cu Instagram. Dacă nu merge, intri cu Facebook și legi contul Instagram.</li>
+        </ol>
+        <p>Gata când „AirTime check” vede contul. Reels-urile programate apar în Planificatorul din Business Suite.</p>
+      </div>
+      <div class="step">
+        <h3>Facebook <span>opțional, ~5 min</span></h3>
+        <ol>
+          <li>În Business Suite, la Setări, apoi Pagini, adaugi Pagina ta și o legi de contul Instagram.</li>
+        </ol>
+        <p>Fără acest pas, reels-urile merg doar pe Instagram.</p>
+      </div>
+      <div class="step">
+        <h3>Canva <span>cont Canva</span></h3>
+        <ol>
+          <li>Prima dată când ceri ceva din Canva, Claude îți cere autorizarea.</li>
+          <li>Intri în contul Canva în fereastra care se deschide și aprobi.</li>
+        </ol>
+        <p>Fără autorizare, restul uneltelor merg normal.</p>
+      </div>
+    </div>
+    <p class="muted small">Toate conectările sunt gratuite. Ghidul complet, inclusiv ce faci dacă un buton are alt nume, e în <a href="https://github.com/alexandrum-coder/claude-creator-kit/blob/main/AIRTIME-INSTALL.md">AIRTIME-INSTALL.md</a>.</p>
+  </section>
+
+  <section>
+    <h2>Spațiu pe disc</h2>
+    <div class="space">
+      <div><b>~6 GB</b><span>tot kitul, după prima folosire</span></div>
+      <div><b>~0,5 GB</b><span>fără claude-shorts și AirTime</span></div>
+      <div><b>8 GB</b><span>liberi, recomandat</span></div>
+    </div>
+    <p class="muted small">Din cei 6 GB, 1,9 GB sunt modelele de transcriere, descărcate la primul clip, iar 0,8 GB sunt cache-uri care se pot șterge. Restul îl ocupă uneltele: ffmpeg, Node și uv vin doar dacă lipsesc. Măsurat pe o instalare reală de test și rotunjit.</p>
+  </section>
+
+  <section>
+    <h2>Ce primești</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Unealtă</th><th>Ce face</th><th>Spațiu</th></tr></thead>
+        <tbody>
+          <tr><td>AirTime</td><td>Dintr-un clip filmat: montaj propus, video YouTube programat și 3 până la 5 reels Instagram</td><td>1,1 GB</td></tr>
+          <tr><td>claude-shorts</td><td>Reels și shorts verticale din video lung, cu subtitrări</td><td>1,3 GB</td></tr>
+          <tr><td>ecc</td><td>Montaj video, prezentări animate, conținut pentru rețele</td><td>370 MB</td></tr>
+          <tr><td>creator-skills</td><td>15 skill-uri pentru texte, brand, SEO și organizare (lista e mai jos)</td><td>mic</td></tr>
+          <tr><td>marketingskills</td><td>Idei de postări, scripturi de reels, strategie de conținut, corectură</td><td>mic</td></tr>
+          <tr><td>marketing</td><td>Postări, campanii, emailuri, analiza concurenței</td><td>mic</td></tr>
+          <tr><td>brand-voice</td><td>Aplică tonul brandului pe texte</td><td>mic</td></tr>
+          <tr><td>design</td><td>Feedback pe postări și flyere</td><td>mic</td></tr>
+          <tr><td>canva</td><td>Editează și redimensionează design-uri Canva. Cere cont Canva.</td><td>mic</td></tr>
+          <tr><td>remotion-skills</td><td>Clipuri animate făcute din cod</td><td>mic</td></tr>
+          <tr><td>youtube-transcript</td><td>Citește transcrierea unui clip YouTube</td><td>mic</td></tr>
+          <tr><td>workout-program-designer</td><td>Programe de antrenament personalizate</td><td>mic</td></tr>
+          <tr><td>superpowers</td><td>Planuri pas cu pas pentru proiecte mari</td><td>mic</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">„Mic” înseamnă sub câteva zeci de MB. Toate sunt gratuite, în afară de cele care cer cont.</p>
+  </section>
+
+  <section>
+    <h2>Cele 15 din creator-skills</h2>
+    <ul class="skills">
+      <li><b>humanizer</b>: textele sună scrise de un om</li>
+      <li><b>social-seo</b>: texte care se găsesc în căutare pe Instagram, YouTube și TikTok</li>
+      <li><b>brandkit</b>: logo, culori, fonturi</li>
+      <li><b>theme-factory</b>: teme pentru slide-uri și documente</li>
+      <li><b>podcast-insights</b>: fișă de idei dintr-un podcast de pe YouTube</li>
+      <li><b>notebooklm</b>: lucru cu Google NotebookLM</li>
+      <li><b>prompt-master</b>: prompturi pentru unelte AI de imagine, video și text</li>
+      <li><b>prompt-flow</b>: îți arată promptul îmbunătățit înainte să înceapă lucrul</li>
+      <li><b>personal-assistant</b>: îți spune ce unealtă să folosești și o pornește</li>
+      <li><b>plan-taskmanager</b>: plan pas cu pas pentru proiecte mai mari</li>
+      <li><b>compact-handoff</b>: salvează starea sesiunii înainte de /compact</li>
+      <li><b>full-output-enforcement</b>: cere rezultate complete, fără bucăți lipsă</li>
+      <li><b>imagegen-frontend-web</b>: concepte vizuale pentru site-uri</li>
+      <li><b>imagegen-frontend-mobile</b>: concepte vizuale pentru aplicații</li>
+      <li><b>browser-harness</b>: Claude lucrează într-un browser real; AirTime îl folosește</li>
+    </ul>
+  </section>
+
+  <p class="muted small">Toate merg în tab-ul Code din aplicația Claude. Detaliile sunt în <a href="https://github.com/alexandrum-coder/claude-creator-kit">repo</a>.</p>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy');
+  var cmd = document.getElementById('cmd');
+  btn.addEventListener('click', function () {
+    var done = function () { btn.textContent = 'Copiat'; setTimeout(function () { btn.textContent = 'Copiază'; }, 1600); };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(cmd);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = 'Cmd+C';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd.textContent).then(done, fallback);
+    } else { fallback(); }
+  });
+})();
+</script>
+
+</html>
