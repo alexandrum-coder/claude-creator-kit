@@ -303,6 +303,56 @@ wrote the texts without social-seo in that run, which predates 8f82872.
 Run C was not rerun after the fixes (they touch `check.sh` detection, the skill and agent, reels, compose and youtube auth);
 the supervised real run on Doru's Mac is the next end-to-end evidence.
 
+## Supervised run on Doru's Mac (2026-11-12, airtime 0.1.1)
+
+Source: final-review.md, Recommendations. Plan: `.superpowers/sdd/2026-11-10-airtime/rulare-supravegheata-plan.md`. No clip from an iPhone was available, so it ran on synthetic clips, up to the confirmation table. No upload, no browser, no `AirTime conectare`.
+
+**Environment.**
+- `HOME` and `CLAUDE_CONFIG_DIR` under `~/claude-creator-kit-backups/rulare-supravegheata/home`.
+- Real Homebrew ffmpeg and a real `setup-mac.sh --doar 14 --fara-unelte`, with the kit taken from GitHub `main` (88784c0).
+- Real claude-shorts `setup.sh`.
+- Real Whisper models.
+
+| Step | Result |
+|---|---|
+| Homebrew 7.0.13 | installed by Doru, with his password; it was not on the Mac before |
+| `brew install ffmpeg` | 24 s; ffmpeg 9.0.2 plus 14 dependencies; **no zscale**; libx264, libx265, hevc_videotoolbox |
+| HDR path, real ffmpeg | `silences.py apply` on an HLG clip: exit 0, the Romanian warning, transfer kept (687bb8d fallback) |
+| `setup-mac.sh --doar 14` | exit 0 in 2:01; 9 items |
+| claude-shorts `setup.sh` (real) | `.shorts-skill` on `/usr/bin/python3` 3.9.6: torch 2.8.0 CPU, faster-whisper 1.2.1, opencv 5.0.0, mediapipe 1.2.3 **without `mp.solutions`**; setup prints the centre-crop notice (C2 fallback, live) |
+| BSD `paste -sd ','` | exits 1 on macOS (C1 is real); `reels.py` tolerates it, and the reels were written |
+| `setup-mac.sh --check` | all ✔, except `! ffmpeg fără zscale` (informational) and `✘ YouTube` (not connected) |
+| `check.sh --speed` | small 31.5 s/min, medium 88.6 s/min; it picks **medium**: a 20-minute clip in ~29.5 min; intro 14.9 s |
+| Run S1: installed plugin, real `youtube.py` | 1:04; stops at `✘ YouTube neconectat` (SKILL.md:71) and shows the `connect-youtube.sh` command with the real path; 0 uploads, 0 browser |
+| Run S2: installed plugin, only `youtube.py` doubled (`CLAUDE_PLUGIN_ROOT` copy) | 14:35, success, 26 turns, 4 Agent calls; HDR clip with diacritics in the name; it reaches the confirmation table with the full texts and relays both warnings (HDR, no face tracking); the one YouTube call is `upload --dry-run`; refusal log empty; 0 browser |
+
+**Found.**
+- **Login breaks under a changed HOME.** `claude auth login` with `HOME` overridden prints "Login successful" but saves nothing: `security` finds no default keychain. The fix is to link `home/Library/Keychains` to the real `~/Library/Keychains`.
+- **Instagram captions in run S2 have no diacritics** ("Postura corecta", "greseala"), while the YouTube texts do. `references/texte.md:8` asks for diacritics. `agents/airtime.md:231` drops diacritics only for hashtags, but the caption step does not restate the rule. Not fixed.
+- **`youtube.mp4` is tagged `iec61966-2-1` while the pixels are HLG** (`curat.mp4` keeps arib-std-b67). The tag no longer matches the source, so players may show the colours wrong; this is the "washed out" case the warning names. Not fixed.
+- **`speed.json` picks medium on this Mac** (29.5 min for 20 min of clip). Earlier measurements on the shim picked small.
+
+**Disk space, measured** (`du -sh`):
+- Homebrew + ffmpeg: 340M (Homebrew alone 209M).
+- Isolated home: 5.6G in total:
+  - `.cache` (Whisper small + medium): 1.9G;
+  - `.airtime` (venv + remotion): 1.1G;
+  - `.shorts-skill`: 887M;
+  - `.claude`: 800M (plugins 396M, `skills/shorts` with node_modules 400M);
+  - `.npm` cache: 307M;
+  - run folder: 207M.
+
+Already on this Mac and therefore not installed here:
+- node: 195M;
+- uv tools: 324M;
+- Command Line Tools: 1.3G.
+
+**Isolation check** (`find -newer` on the real locations):
+- 0 new files in `~/.claude/skills`, `~/.claude/settings.json`, `~/.shorts-skill`, `~/.local/bin`, `~/.local/share/uv`.
+- `~/.airtime` and `~/AirTime` do not exist.
+- The new files in `~/.claude/plugins` (1299) belong to other sessions' plugin updates; 0 of them match airtime or creator-kit.
+- Keychain: 48 to 49 entries; the new one is the isolated profile's login.
+
 ## How to repeat
 
 ```bash
