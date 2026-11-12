@@ -120,11 +120,17 @@ def compose(curat, render_json, out) -> Path:
     src = _probe_full(curat)
     intro = _probe_full(intro_path)
     graph, maps = build_filtergraph(src, intro, overlays, intro["duration"])
+    # Frame colour properties win over the encoder flags below, so set them in the graph too.
+    graph += ";%ssetparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709[vout]" % maps["video"]
+    maps = dict(maps, video="[vout]")
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(curat), "-i", str(intro_path)]
     for ov in overlays:
         cmd += ["-i", str(ov["file"])]
     cmd += ["-filter_complex", graph, "-map", maps["video"], "-map", maps["audio"],
             "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+            # youtube.mp4 is SDR: tag it bt709 explicitly, or ffmpeg copies a tag from one of the
+            # inputs (an HLG curat.mp4 left untouched without zscale ended up as iec61966-2-1).
+            "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out)]
     out.parent.mkdir(parents=True, exist_ok=True)
     try:

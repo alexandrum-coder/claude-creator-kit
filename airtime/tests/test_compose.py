@@ -70,3 +70,27 @@ def test_probe_hevc_mov(tmp_path):
     assert info["fps"] == pytest.approx(30, abs=0.01)
     assert info["duration"] == pytest.approx(2, abs=0.3)
     assert info["has_audio"] is True
+
+
+def test_compose_tags_output_bt709(tmp_path):
+    # An HLG-tagged source (iPhone HDR left as is when ffmpeg has no zscale) must not leave the
+    # output with an arbitrary colour tag: youtube.mp4 is SDR, tagged bt709.
+    curat = tmp_path / "curat.mp4"
+    _ff("-f", "lavfi", "-i", "testsrc=size=640x360:rate=30:duration=2",
+        "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2",
+        "-pix_fmt", "yuv420p", "-c:v", "libx264", "-c:a", "aac", "-shortest",
+        "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", str(curat))
+    intro = tmp_path / "rendered" / "intro.mp4"
+    intro.parent.mkdir()
+    _source(intro, "640x360", 30, 1, audio=False)
+    render = tmp_path / "rendered" / "render.json"
+    render.write_text(json.dumps({"intro": "intro.mp4", "overlays": []}))
+    out = tmp_path / "youtube.mp4"
+
+    compose.compose(curat, render, out)
+
+    tags = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                           "stream=color_primaries,color_transfer,color_space", "-of", "json", str(out)],
+                          capture_output=True, text=True, check=True)
+    s = json.loads(tags.stdout)["streams"][0]
+    assert (s.get("color_primaries"), s.get("color_transfer"), s.get("color_space")) == ("bt709", "bt709", "bt709")

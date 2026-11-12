@@ -227,9 +227,9 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
    ```json
    [{"file": "<cale completă .mp4>", "caption": "...", "hashtags": ["#...", "... 3-5 ..."], "alt_text": "..."}]
    ```
-   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`; la clip fără vorbire, din cârligele segmentului și din `keywords`), cu cuvântul-cheie din `keywords` în prima propoziție, și o invitație blândă la final (comentariu, salvare sau urmărire). Fără cifre sau promisiuni care nu se aud în clip.
+   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`; la clip fără vorbire, din cârligele segmentului și din `keywords`), cu cuvântul-cheie din `keywords` în prima propoziție, și o invitație blândă la final (comentariu, salvare sau urmărire). Scrie în limba profilului cu toate semnele ei diacritice (în română: ă, â, î, ș, ț), ca în `references/texte.md`; doar hashtagurile pot fi fără diacritice. Fără cifre sau promisiuni care nu se aud în clip.
    - `hashtags`: 3 până la 5, cu `#`, fără spații, fără diacritice dacă nu sunt folosite uzual, mai întâi cele specifice subiectului, apoi cel de nișă; cuvintele din `keywords` din profil au prioritate.
-   - `alt_text` (în limba profilului): o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
+   - `alt_text` (în limba profilului, cu diacritice): o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
    - Stilul: dacă profilul are cheia `voice` (text cu vocea salvată a brandului), scrie caption-urile în acea voce, aplicând regulile din skill-ul `brand-voice` dacă e instalat. Altfel, ton cald, direct, în limba profilului, la persoana a doua singular sau cum cere `references/texte.md`.
 4. Verifică: numărul de intrări din `instagram.json` = numărul de fișiere din `reels`; fiecare `file` există; fiecare `hashtags` are între 3 și 5 elemente.
 

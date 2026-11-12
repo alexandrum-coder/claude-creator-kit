@@ -328,8 +328,8 @@ Source: final-review.md, Recommendations. Plan: `.superpowers/sdd/2026-11-10-air
 
 **Found.**
 - **Login breaks under a changed HOME.** `claude auth login` with `HOME` overridden prints "Login successful" but saves nothing: `security` finds no default keychain. The fix is to link `home/Library/Keychains` to the real `~/Library/Keychains`.
-- **Instagram captions in run S2 have no diacritics** ("Postura corecta", "greseala"), while the YouTube texts do. `references/texte.md:8` asks for diacritics. `agents/airtime.md:231` drops diacritics only for hashtags, but the caption step does not restate the rule. Not fixed.
-- **`youtube.mp4` is tagged `iec61966-2-1` while the pixels are HLG** (`curat.mp4` keeps arib-std-b67). The tag no longer matches the source, so players may show the colours wrong; this is the "washed out" case the warning names. Not fixed.
+- **Instagram captions in run S2 have no diacritics** ("Postura corecta", "greseala"), while the YouTube texts do. `references/texte.md:8` asks for diacritics. `agents/airtime.md:231` drops diacritics only for hashtags, but the caption step does not restate the rule. Fixed in 0.1.2: the caption and alt text rules now ask for the profile language with its diacritics.
+- **`youtube.mp4` is tagged `iec61966-2-1` while the pixels are HLG** (`curat.mp4` keeps arib-std-b67). The tag no longer matches the source, so players may show the colours wrong; this is the "washed out" case the warning names. Fixed in 0.1.2: compose.py sets bt709 on the frames (`setparams`) and on the encoder; recomposing the run S2 files gives bt709/bt709/bt709 (test `test_compose_tags_output_bt709`).
 - **`speed.json` picks medium on this Mac** (29.5 min for 20 min of clip). Earlier measurements on the shim picked small.
 
 **Disk space, measured** (`du -sh`):
