@@ -8,7 +8,7 @@ Durează cam 15 minute. La final ai în aplicația Claude, în tab-ul **Code**, 
 
 - un Mac cu macOS la zi;
 - un cont Claude plătit (Pro sau Max), pentru tab-ul Code din aplicația desktop;
-- 2–3 GB liberi pe disc;
+- spațiu pe disc: tot kitul ocupă în jur de 6 GB după prima folosire, din care 1,9 GB sunt modelele de transcriere și 0,8 GB cache-uri care se pot șterge. Fără claude-shorts și AirTime ocupă în jur de 0,5 GB. Recomandat: 8 GB liberi;
 - acces de administrator pe Mac, pentru instalarea uneltelor de bază.
 
 ## Instalare rapidă
@@ -44,7 +44,7 @@ Scriptul face singur tot ce lipsește pentru ce ai ales:
 2. **Homebrew, Node.js, ffmpeg, uv și yt-dlp**: le instalează doar dacă lipsesc și doar dacă le cere ce ai ales (ecc, remotion-skills și claude-shorts cer Node și ffmpeg; serverul de transcriere cere uv; podcast-insights cere yt-dlp). Homebrew îți cere o dată parola de Mac.
 3. **Aplicația Claude**: o instalează dacă lipsește. Atunci scriptul se oprește și îți cere să o deschizi, să intri în cont (Pro sau Max) și să deschizi o dată tab-ul **Code**. Apoi rulezi din nou aceeași comandă.
 4. **Pluginurile alese** din tabelul de mai jos.
-5. **claude-shorts**, dacă l-ai ales, cu uneltele lui de transcriere și randare (aproximativ 1 GB, un minut sau două).
+5. **claude-shorts**, dacă l-ai ales, cu uneltele lui de transcriere și randare (aproximativ 1,3 GB, un minut sau două).
 6. **Serverul MCP `youtube-transcript`**, dacă l-ai ales: Claude poate citi transcrierea oricărui clip YouTube, fără cheie API.
 7. **Reglajul pluginului `ecc`**, dacă l-ai instalat acum.
 
