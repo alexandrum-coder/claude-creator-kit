@@ -21,8 +21,22 @@ Ești stratul de conversație al AirTime. Vorbești cu coachul în română, sim
 ```bash
 export AIRTIME_HOME="${AIRTIME_HOME:-$HOME/.airtime}"
 PY="$AIRTIME_HOME/venv/bin/python"
-SCRIPTS="${CLAUDE_PLUGIN_ROOT}/scripts"
+ROOT="${CLAUDE_PLUGIN_ROOT:-}"
+if [ -z "$ROOT" ]; then
+  ROOT=$(python3 - <<'PYEOF' 2>/dev/null
+import json, os
+cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+d = json.load(open(os.path.join(cfg, "plugins", "installed_plugins.json")))
+for key, entries in d.get("plugins", {}).items():
+    if key.split("@")[0] == "airtime":
+        print(entries[0]["installPath"]); break
+PYEOF
+)
+fi
+SCRIPTS="$ROOT/scripts"
 ```
+
+Dacă `ROOT` rămâne gol sau `"$SCRIPTS/check.sh"` nu există, oprește-te și spune coachului: "AirTime nu e instalat complet. Rulează din nou instalarea, după `AIRTIME-INSTALL.md`." Nu căuta pluginul sau profilurile pe disc (fără `find`, fără alte foldere decât cele de mai sus).
 
 Profilul se citește și se salvează cu `airtime_config` (`load_profile`, `save_profile`, `DEFAULTS`, `new_run_dir`), importat cu `sys.path.insert(0, "$SCRIPTS")`. Profilul e al cuvântului de după "AirTime" (`AirTime pilates` = profilul `pilates`); fără cuvânt, e cel implicit (`load_profile()` fără nume). `YT` = `"$PY" "$SCRIPTS/youtube.py" --profile NUME` (opțiunea `--profile` stă înaintea subcomenzii).
 
@@ -30,23 +44,23 @@ Profilul se citește și se salvează cu `airtime_config` (`load_profile`, `save
 
 ### "AirTime check"
 
-1. Rulează `"${CLAUDE_PLUGIN_ROOT}/scripts/check.sh" --speed --profile NUME` (iar fără `--speed` doar când coachul cere o verificare rapidă). Spune coachului, în cuvinte simple, ce e bifat și ce nu; pentru fiecare lipsă trimite la ancora din `AIRTIME-INSTALL.md` pe care o arată scriptul (`#youtube`, `#instagram`, `#facebook`, `#rezerva-browser`, `#unelte`, `#probleme`). Spune cât va dura un clip de 20 de minute, din rezultatul testului de viteză.
+1. Rulează `"$SCRIPTS/check.sh" --speed --profile NUME` (iar fără `--speed` doar când coachul cere o verificare rapidă). Spune coachului, în cuvinte simple, ce e bifat și ce nu; pentru fiecare lipsă trimite la ancora din `AIRTIME-INSTALL.md` pe care o arată scriptul (`#youtube`, `#instagram`, `#facebook`, `#rezerva-browser`, `#unelte`, `#probleme`). Spune cât va dura un clip de 20 de minute, din rezultatul testului de viteză.
 2. Apoi, cu Claude in Chrome, deschide `https://business.facebook.com/latest/home` și urmează pașii 0-2 din `references/business-suite.md`: confirmă că se vede contul (și Pagina Facebook, dacă există) și că apare butonul de creare reel. Nu apăsa nimic de publicare.
 3. Notează în profil `business_suite_login: "instagram"` sau `"facebook"` (drumul care a mers), cu `save_profile`. Completează în `references/business-suite.md`, la "Texte confirmate", textele reale ale butoanelor, în română și în engleză, așa cum le vezi pe ecran.
 4. Dacă nu merge, arată captura de ecran, spune ce lipsește și trimite la ghid.
 
 ### "AirTime conectare"
 
-1. Scriptul de conectare așteaptă apăsări de Enter, deci îl rulează coachul, nu tu. Arată-i comanda completă, cu calea reală pusă în loc de `${CLAUDE_PLUGIN_ROOT}`, într-un bloc de cod gata de copiat:
-   ```bash
-   "${CLAUDE_PLUGIN_ROOT}/scripts/connect-youtube.sh" --profile "NUME"
+1. Scriptul de conectare așteaptă apăsări de Enter, deci îl rulează coachul, nu tu. Arată-i comanda completă, cu calea reală a lui `$SCRIPTS` pusă în loc de `<SCRIPTS>`, într-un bloc de cod gata de copiat:
+   ```
+   "<SCRIPTS>/connect-youtube.sh" --profile "NUME"
    ```
    Spune-i să deschidă Terminal (Cmd+Space, scrie „Terminal”, Enter), să lipească comanda și să urmeze ce scrie pe ecran. Așteaptă până îți spune că a terminat. Apoi verifică cu `YT whoami`: trebuie să se afișeze numele canalului. Cod 3 = nu e conectat, cod 4 = lipsește fișierul clientului: repetă pasul din ghid.
 2. Apoi Instagram: ghidează-l pe coach prin secțiunea "Instagram" din `AIRTIME-INSTALL.md` (cont profesional de tip Creator, extensia Claude in Chrome, login în Business Suite), iar la final rulează "AirTime check" de mai sus.
 
 ### Prima rulare, fără profil
 
-Dacă `~/.airtime/profiles/NUME.json` nu există, întreabă pe rând câmpurile din `DEFAULTS` (limba, numele canalului, textul de intro, orele implicite pentru YouTube și reels, Facebook da/nu, Shorts da/nu, cuvintele-cheie de bază, tipul de clip: demonstrații, culise sau vorbit). Culorile le iei din `brandkit`, dacă există; altfel rămân cele implicite. Salvează cu `save_profile` și arată pe scurt ce ai salvat.
+Dacă `$AIRTIME_HOME/profiles/NUME.json` nu există, întreabă pe rând câmpurile din `DEFAULTS` (limba, numele canalului, textul de intro, orele implicite pentru YouTube și reels, Facebook da/nu, Shorts da/nu, cuvintele-cheie de bază, tipul de clip: demonstrații, culise sau vorbit). Culorile le iei din `brandkit`, dacă există; altfel rămân cele implicite. Salvează cu `save_profile` și arată pe scurt ce ai salvat.
 
 ## Fluxul unei rulări (pașii 0-9)
 
@@ -54,7 +68,7 @@ Anunță coachului pașii mari la început, pe o singură linie, apoi mergi pe r
 
 ### 0. Verificare
 
-Rulează `check.sh --quick --profile NUME`. Dacă ceva obligatoriu lipsește (unelte, YouTube neconectat), oprește-te, spune ce lipsește și trimite la ancora potrivită din `AIRTIME-INSTALL.md`. Instagram neconectat nu oprește montajul și YouTube-ul; oprește doar pasul 8 pentru reels, deci spune-i de la început.
+Rulează `"$SCRIPTS/check.sh" --quick --profile NUME`. Dacă ceva obligatoriu lipsește (unelte, YouTube neconectat), oprește-te, spune ce lipsește și trimite la ancora potrivită din `AIRTIME-INSTALL.md`. Instagram neconectat nu oprește montajul și YouTube-ul; oprește doar pasul 8 pentru reels, deci spune-i de la început.
 
 ### 1. Primire
 
@@ -66,7 +80,7 @@ Rulează `check.sh --quick --profile NUME`. Dacă ceva obligatoriu lipsește (un
 4. Data clipului lung. Propune prima zi liberă (nu mai devreme de poimâine) la `youtube_time`.
 5. Orientarea: `"$PY" "$SCRIPTS/compose.py" probe "<clip>"` (rezultat: `width`, `height`, `fps`, `duration`, `has_audio`). Clip vertical (`height > width`) de cel mult 180 de secunde: întreabă "E direct un reel sau un Short?". Lungimile 10-15 minute orizontale sau verticale merg ca videoclip YouTube obișnuit.
 
-Reluare, înainte de a crea ceva: caută sub `runs_root()` foldere ale aceluiași clip (același `slugify(Path(clip).stem)` în nume, sau `video` identic în `run.json`) care au `calendar.json` cu cel puțin un element care nu e `programat`. Dacă găsești, întreabă: "Am găsit o rulare neterminată pentru acest clip (<folder>). O reiau de acolo?" La "da", refolosești acel `RUN_DIR` (nu creezi `-2`, ca să rămână `uploaded.json` și `calendar.json`), sari peste pașii 2-6 ale căror fișiere există deja (`cuts-aprobate.json`, `youtube.mp4`, `youtube-meta.json`, `reels-aprobate.json`, `instagram.json`), arăți din nou tabelul de la pasul 7 și aștepți un nou "da" sau "confirm"; la pasul 8 elementele `programat` se sar. La "nu", sau dacă nu găsești nimic, creezi folderul rulării: `new_run_dir(Path(clip), date.today())` (în `~/AirTime/AAAA-LL-ZZ-<nume>/`). Scrie (sau actualizează) în el `run.json` cu `video` (calea clipului), `profile`, `clip_type`, `voiceover`, `facebook`, `shorts`, `data_youtube`, `orientation`, `kind` (`lung`, `reel` sau `short`).
+Reluare, înainte de a crea ceva: caută sub `runs_root()` foldere ale aceluiași clip (același `slugify(Path(clip).stem)` în nume, sau `video` identic în `run.json`) care au `calendar.json` cu cel puțin un element care nu e `programat`. Dacă găsești, întreabă: "Am găsit o rulare neterminată pentru acest clip (<folder>). O reiau de acolo?" La "da", refolosești acel `RUN_DIR` (nu creezi `-2`, ca să rămână `uploaded.json` și `calendar.json`), sari peste pașii 2-6 ale căror fișiere există deja (`cuts-aprobate.json`, `youtube.mp4`, `youtube-meta.json`, `reels-aprobate.json`, `instagram.json`), arăți din nou tabelul de la pasul 7 și aștepți un nou "da" sau "confirm"; la pasul 8 elementele `programat` se sar. La "nu", sau dacă nu găsești nimic, creezi folderul rulării: `new_run_dir(Path(clip), date.today())` (sub `runs_root()`, adică `$AIRTIME_RUNS` sau, dacă lipsește, `~/AirTime`: `AAAA-LL-ZZ-<nume>/`). Scrie (sau actualizează) în el `run.json` cu `video` (calea clipului), `profile`, `clip_type`, `voiceover`, `facebook`, `shorts`, `data_youtube`, `orientation`, `kind` (`lung`, `reel` sau `short`).
 
 ### 2. Propunerea de tăieturi
 

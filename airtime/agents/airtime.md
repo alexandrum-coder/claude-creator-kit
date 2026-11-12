@@ -54,7 +54,7 @@ SCRIPTS="$ROOT/scripts"
 SHORTS_PY=$(cd "$SCRIPTS" && "$PY" -c 'import reels; print(reels.shorts_python())')
 ```
 
-- Dacă `ROOT` rămâne gol sau `$PY` nu există, întorci `EROARE: AirTime nu e instalat complet (lipsește venv sau pluginul)`.
+- Dacă `ROOT` rămâne gol sau `$PY` nu există, întorci `EROARE: AirTime nu e instalat complet (lipsește venv sau pluginul)`. Nu cauți pluginul pe disc (fără `find`, fără alte foldere).
 - `ffmpeg`, `ffprobe` și `node` trebuie să fie pe PATH. Verifică cu `command -v`; dacă lipsesc, `EROARE: lipsește <instrumentul>`.
 - Scripturile se rulează cu `"$PY" "$SCRIPTS/<script>.py"`. Pașii claude-shorts (doar transcrierea) se rulează cu `"$SHORTS_PY"`, dar prin `reels.py transcribe`, care îl alege singur.
 - Calea clipului poate conține spații și diacritice: pune-o mereu între ghilimele duble.
@@ -147,7 +147,26 @@ Ieșiri în `RUN_DIR`: `youtube-meta.json`, `candidati.json`. Intrări: `transcr
 
 0. Verifică `chapters-youtube.json`: dacă are mai puțin de 3 capitole, oprește imediat, fără dry-run, cu `EROARE: texte - sunt <n> capitole, YouTube cere cel puțin 3; clipul e prea scurt, refă capitolele la montaj sau urcă fără capitole`.
 1. Citește ghidurile, în ordinea asta:
-   - `skills/social-seo/SKILL.md` din pluginul `social-seo` instalat. Caută în `installed_plugins.json` (din `$CLAUDE_CONFIG_DIR/plugins/`, sau `~/.claude/plugins/` dacă variabila lipsește) toate valorile `installPath` și ia prima în care există `skills/social-seo/SKILL.md`. Dacă nu există nicăieri, continuă numai cu `texte.md` și scrie pe un rând `social-seo lipsește`.
+   - `SKILL.md` al skill-ului `social-seo` instalat. Calea o dă blocul de mai jos (cheia `social-seo@...` din `installed_plugins.json`; marketplace-ul pune `SKILL.md` direct în `installPath`, iar `skills/social-seo/SKILL.md` e rezerva; apoi skill-ul separat din `$CLAUDE_CONFIG_DIR/skills/`). Citește fișierul `$SEO`. Dacă `SEO` e gol, continuă numai cu `texte.md` și scrie pe un rând `social-seo lipsește`; nu-l căuta în altă parte.
+```bash
+SEO=$("$PY" - <<'PYEOF'
+import json, os
+cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+try:
+    d = json.load(open(os.path.join(cfg, "plugins", "installed_plugins.json")))
+except Exception:
+    d = {}
+cands = []
+for key, entries in d.get("plugins", {}).items():
+    if key.split("@")[0] == "social-seo":
+        for e in entries or []:
+            ip = e.get("installPath", "")
+            cands += [os.path.join(ip, "SKILL.md"), os.path.join(ip, "skills", "social-seo", "SKILL.md")]
+cands.append(os.path.join(cfg, "skills", "social-seo", "SKILL.md"))
+print(next((c for c in cands if os.path.isfile(c)), ""))
+PYEOF
+)
+```
    - `$ROOT/skills/airtime/references/texte.md` (regulile AirTime pentru titluri, descrieri, hook-uri). Dacă lipsește, `EROARE: lipsește references/texte.md`.
    Dacă cele două ghiduri se contrazic, câștigă `texte.md`.
 2. Scrie `youtube-meta.json`:
