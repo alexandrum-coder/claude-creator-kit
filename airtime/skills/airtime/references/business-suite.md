@@ -44,7 +44,7 @@ Regula generală: dacă un element nu apare în 10 secunde, AirTime face o captu
 
 ## 6. Programează
 
-- **Ce se apasă:** comutatorul "Programează" / "Schedule" (în loc de "Publică acum" / "Share now"), apoi data și ora din `calendar.json` (`when_local`), în ora României. Apoi butonul "Programează" / "Schedule".
+- **Ce se apasă:** comutatorul "Programează" / "Schedule" (în loc de "Publică acum" / "Share now"), apoi data și ora din `calendar.json` (`when_local`), în ora României. Chiar înainte de butonul final, elementul trece `in_curs` în `calendar.json` (scris imediat). Apoi butonul "Programează" / "Schedule".
 - **Trebuie să apară:** data și ora corecte în câmpuri înainte de apăsare; după apăsare, mesajul de confirmare sau revenirea la listă.
 - **Dacă nu apare:** nu se apasă niciodată "Publică acum" / "Share now". Captură și "Când pică".
 
@@ -52,13 +52,14 @@ Regula generală: dacă un element nu apare în 10 secunde, AirTime face o captu
 
 - **Ce se face:** deschide "Planificator" / "Planner" (în meniul din stânga: "Planificator"), alege luna sau săptămâna cu data respectivă.
 - **Trebuie să apară:** reelul, cu data și ora bună și cu începutul descrierii.
-- **Dacă nu apare sau ora diferă:** elementul rămâne `esuat` în `calendar.json`, cu motivul "nu apare în Planificator" sau "ora diferă". Se arată captura. Nu se reprogramează automat, ca să nu se dubleze.
+- **Dacă nu apare sau ora diferă:** elementul devine `esuat` în `calendar.json`, cu motivul "nu apare în Planificator" sau "ora diferă". Se arată captura. Nu se reprogramează automat, ca să nu se dubleze; coachul se uită în Planificator și decide.
 - **Dacă apare corect:** elementul devine `programat`, cu `ref` = "Planificator, <data> <ora>".
 
 ## Când pică un pas
 
 1. Captură de ecran și notă despre pasul care a picat.
-2. O singură încercare cu `browser-harness` (necesită activat `chrome://inspect/#remote-debugging`, vezi ghidul), reluând de la pasul 2 pentru acel reel.
+2. Dacă elementul NU e încă `in_curs` (a picat la pașii 2-5, înainte de butonul final de la pasul 6, deci nu s-a programat nimic): o singură încercare cu `browser-harness` (necesită activat `chrome://inspect/#remote-debugging`, vezi ghidul), reluând de la pasul 2 pentru acel reel.
+   Dacă elementul e deja `in_curs` (s-a apăsat "Programează", sau pasul 7 a picat): nu se reia de la pasul 2. Se face doar pasul 7, verificarea în Planificator (cu Claude in Chrome sau, dacă nu merge, cu `browser-harness`). Reelul apare la data și ora bună: `programat`. Nu apare sau ora diferă: `esuat`, cu motivul, fără reprogramare automată.
 3. Dacă pică și așa: se oprește tot ce ține de browser, se arată captura coachului și se scrie `<RUN_DIR>/manual.md` cu, pentru fiecare reel rămas: calea fișierului, descrierea completă, data și ora, dacă se pune și pe Facebook. Elementele rămân `planificat` sau `esuat`; coachul le pune de mână.
 
 ## Texte confirmate
