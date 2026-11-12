@@ -115,6 +115,10 @@ def _norm(text: str) -> str:
     return re.sub(r"[^\w]", "", text)
 
 
+def has_words(transcript: dict) -> bool:
+    return any(seg.get("words") for seg in transcript.get("segments") or [])
+
+
 def clean_captions(transcript: dict, fillers=FILLERS) -> dict:
     drop = {_norm(f) for f in fillers}
     out = copy.deepcopy(transcript)
@@ -226,9 +230,13 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation, warnin
         stale.unlink()
 
     snapped = work / "snapped_segments.json"
-    run_step("snap_boundaries", [py, root / "scripts" / "snap_boundaries.py",
-                                 "--segments", approved, "--transcript", transcript_curat,
-                                 "--input-video", curat, "--output", snapped])
+    if has_words(json.loads(Path(transcript_curat).read_text(encoding="utf-8"))):
+        run_step("snap_boundaries", [py, root / "scripts" / "snap_boundaries.py",
+                                     "--segments", approved, "--transcript", transcript_curat,
+                                     "--input-video", curat, "--output", snapped])
+    else:
+        # no speech: snap_boundaries.py exits 1 without word timestamps; keep the approved times
+        snapped.write_text(Path(approved).read_text(encoding="utf-8"), encoding="utf-8")
     segments = json.loads(snapped.read_text(encoding="utf-8"))["segments"]
 
     for i, seg in enumerate(segments, 1):

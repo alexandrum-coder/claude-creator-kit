@@ -106,7 +106,8 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
    - primul capitol începe la 0 pe clipul tăiat;
    - fiecare capitol are cel puțin 15 secunde (YouTube cere 10; ia o marjă);
    - titlurile au 2 până la 6 cuvinte, în limba profilului (`language`), cu semnele ei diacritice, fără ghilimele;
-   - dacă clipul e prea scurt pentru 3 capitole de 15 secunde, fă câte încap și scrie pe un rând în bloc `Capitole: doar <n>, clipul e scurt`.
+   - dacă clipul e prea scurt pentru 3 capitole de 15 secunde, fă câte încap și scrie pe un rând în bloc `Capitole: doar <n>, clipul e scurt`;
+   - dacă `transcript-curat.json` nu are niciun cuvânt (voce pusă separat sau doar muzică), `chapters.json` e `[]` și scrii în bloc `Capitole omise: clipul nu are vorbire`.
    Scrie `RUN_DIR/chapters.json`: `[{"t": <secunde pe clipul tăiat>, "title": "..."}]`.
 5. Props pentru randare. Culorile = profilul cu cheile imbricate îmbinate peste valorile implicite (`load_profile` îmbină un singur nivel). Scrie `RUN_DIR/props.json` cu un script Python scurt:
    ```python
@@ -145,7 +146,7 @@ Păstrează blocul sub 10 rânduri; dacă sunt multe capitole, scrie numai prime
 
 Ieșiri în `RUN_DIR`: `youtube-meta.json`, `candidati.json`. Intrări: `transcript-curat.json`, `chapters-youtube.json`, `youtube.mp4`.
 
-0. Verifică `chapters-youtube.json`: dacă are mai puțin de 3 capitole, oprește imediat, fără dry-run, cu `EROARE: texte - sunt <n> capitole, YouTube cere cel puțin 3; clipul e prea scurt, refă capitolele la montaj sau urcă fără capitole`.
+0. Verifică `chapters-youtube.json`: dacă are mai puțin de 3 capitole (sau e gol), nu te oprești: în `youtube-meta.json` pui `"chapters": []`, scrii în bloc `Capitole omise: clipul e scurt` (sau `Capitole omise: clipul nu are vorbire`, dacă transcriptul n-are cuvinte) și continui cu pașii de mai jos.
 1. Citește ghidurile, în ordinea asta:
    - `SKILL.md` al skill-ului `social-seo` instalat. Calea o dă blocul de mai jos (cheia `social-seo@...` din `installed_plugins.json`; marketplace-ul pune `SKILL.md` direct în `installPath`, iar `skills/social-seo/SKILL.md` e rezerva; apoi skill-ul separat din `$CLAUDE_CONFIG_DIR/skills/`). Citește fișierul `$SEO`. Dacă `SEO` e gol, continuă numai cu `texte.md` și scrie pe un rând `social-seo lipsește`; nu-l căuta în altă parte.
 ```bash
@@ -175,7 +176,7 @@ PYEOF
     "chapters": [{"t": 0, "title": "..."}, ...],
     "language": "<language din profil>", "category_id": "17"}
    ```
-   `chapters` = conținutul din `chapters-youtube.json`. Descrierea NU conține lista de capitole (`youtube.py` o adaugă singur). Titlul: cel mult 70 de caractere, fără `<` sau `>`, cu cuvântul-cheie principal din `keywords` din profil chiar la ÎNCEPUTUL titlului (dacă lista e goală, cel mai important substantiv din clip, tot la început). Textele se bazează numai pe ce se spune în `transcript-curat.json`; nu inventa cifre, promisiuni sau nume.
+   `chapters` = conținutul din `chapters-youtube.json`, sau `[]` după pasul 0. Descrierea NU conține lista de capitole (`youtube.py` o adaugă singur). Titlul: cel mult 70 de caractere, fără `<` sau `>`, cu cuvântul-cheie principal din `keywords` din profil chiar la ÎNCEPUTUL titlului (dacă lista e goală, cel mai important substantiv din clip, tot la început). Textele se bazează numai pe ce se spune în `transcript-curat.json`; nu inventa cifre, promisiuni sau nume.
 3. Validează, fără urcare:
    `"$PY" "$SCRIPTS/youtube.py" --profile "$PROFIL" upload --dry-run --file "$RUN_DIR/youtube.mp4" --meta "$RUN_DIR/youtube-meta.json" --publish-at "$DATA_YOUTUBE" --run-dir "$RUN_DIR"`
    Opțiunea `--profile` stă înaintea lui `upload`. Fără `DATA_YOUTUBE`, calculează data cu `datetime` + `zoneinfo` (peste 2 zile, la `youtube_time`, în `timezone` din profil).
@@ -197,6 +198,8 @@ PYEOF
    - `score` între 1 și 100: cât de bine ține singur fragmentul (idee completă, deschidere puternică, final clar).
    - `hook_line1`: cel mult 6 cuvinte, conține un cuvânt-cheie din `keywords` din profil (dacă lista e goală, cel mai important substantiv al fragmentului). `hook_line2`: cel mult 8 cuvinte, completează ideea.
    - Ordonați descrescător după `score`.
+   - Clip fără vorbire (niciun cuvânt în `transcript-curat.json`): candidați pe intervale de timp, ferestre la rând de câte 30 de secunde pe `curat.mp4` (ultima rămâne dacă are cel puțin 15 secunde; cel mult 12), `score` 50, cârligele scrise din `keywords` și din tipul clipului, nu din transcript. Scrii în bloc `Candidați pe intervale: clipul nu are vorbire`.
+   - `curat.mp4` sub 15 secunde: un singur candidat, peste tot clipul.
 
 Bloc de întors:
 
@@ -206,6 +209,7 @@ Titlu YouTube: <titlul> (<n> caractere)
 Validare YouTube: trecută (<n> avertismente: <scurt>)
 Metadate: <RUN_DIR>/youtube-meta.json
 Candidați reels: <n> în <RUN_DIR>/candidati.json
+Capitole omise: <motiv> / Candidați pe intervale: ...   (numai dacă e cazul)
 Top 3: #<id> <mm:ss>-<mm:ss> scor <s> "<hook_line1>"   (câte un rând)
 ```
 
@@ -221,7 +225,7 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
    ```json
    [{"file": "<cale completă .mp4>", "caption": "...", "hashtags": ["#...", "... 3-5 ..."], "alt_text": "..."}]
    ```
-   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`), cu cuvântul-cheie din `keywords` în prima propoziție, și o invitație blândă la final (comentariu, salvare sau urmărire). Fără cifre sau promisiuni care nu se aud în clip.
+   - `caption`: 1 până la 3 propoziții scurte pe baza a ceea ce se spune în fragment (din `transcript-curat.json`, între `start` și `end`; la clip fără vorbire, din cârligele segmentului și din `keywords`), cu cuvântul-cheie din `keywords` în prima propoziție, și o invitație blândă la final (comentariu, salvare sau urmărire). Fără cifre sau promisiuni care nu se aud în clip.
    - `hashtags`: 3 până la 5, cu `#`, fără spații, fără diacritice dacă nu sunt folosite uzual, mai întâi cele specifice subiectului, apoi cel de nișă; cuvintele din `keywords` din profil au prioritate.
    - `alt_text` (în limba profilului): o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
    - Stilul: dacă profilul are cheia `voice` (text cu vocea salvată a brandului), scrie caption-urile în acea voce, aplicând regulile din skill-ul `brand-voice` dacă e instalat. Altfel, ton cald, direct, în limba profilului, la persoana a doua singular sau cum cere `references/texte.md`.

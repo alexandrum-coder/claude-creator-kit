@@ -109,9 +109,11 @@ def _fake_run_factory(calls, n_render, n_export):
     return fake
 
 
-def _inputs(tmp_path):
+def _inputs(tmp_path, words=True):
     tr = tmp_path / "t.json"
-    tr.write_text(json.dumps({"segments": [], "captions": []}))
+    segs = [{"start": 0, "end": 1, "text": "salut",
+             "words": [{"word": "salut", "start": 0.0, "end": 1.0}]}] if words else []
+    tr.write_text(json.dumps({"segments": segs, "captions": []}))
     return tmp_path / "curat.mp4", tr, tmp_path / "approved.json"
 
 
@@ -302,3 +304,30 @@ def test_cli_build_prints_warnings(tmp_path, monkeypatch, capsys):
     assert rc == 0
     res = json.loads(capsys.readouterr().out)
     assert res["warnings"] == ["avertisment de test"]
+
+
+def test_build_without_words_skips_snapping(tmp_path, monkeypatch):
+    """claude-shorts snap_boundaries.py exits 1 on a transcript with no words (music or voiceover
+    clip); the approved segments are then used as they are."""
+    calls = []
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory(calls, 2, 2))
+    monkeypatch.setattr(reels, "probe", lambda p: (1080, 1920, 30.0))
+    curat, tr, ap = _inputs(tmp_path, words=False)
+    segs = [{"id": 1, "start": 0.0, "end": 30.0, "duration": 30.0, "score": 50,
+             "hook_line1": "Exercițiu spate", "hook_line2": "fără vorbe"},
+            {"id": 2, "start": 30.0, "end": 60.0, "duration": 30.0, "score": 50,
+             "hook_line1": "Exercițiu umeri", "hook_line2": "pas cu pas"}]
+    ap.write_text(json.dumps({"segments": segs, "style": "bold"}), encoding="utf-8")
+    out = reels.build(curat, tr, ap, "bold", tmp_path / "out", "vertical")
+    assert len(out) == 2
+    assert "snap_boundaries" not in [c[0] for c in calls]
+    snapped = json.loads((tmp_path / "out" / "work" / "snapped_segments.json").read_text(encoding="utf-8"))
+    assert snapped["segments"] == segs
+    extract = [c[1] for c in calls if c[0] == "extract_clip"]
+    assert extract[1][extract[1].index("-ss") + 1] == "30.000"
+
+
+def test_has_words():
+    assert not reels.has_words({"segments": [{"start": 0, "end": 1, "text": "", "words": []}]})
+    assert not reels.has_words({})
+    assert reels.has_words({"segments": [{"words": [{"word": "a", "start": 0, "end": 1}]}]})
