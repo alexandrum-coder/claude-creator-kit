@@ -58,7 +58,7 @@ Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l �
 
 | Plugin | Pentru ce |
 |---|---|
-| `creator-skills` | 15 skill-uri, fiecare instalat separat (14 din acest repo, plus `browser-harness` de la browser-use, MIT): humanizer, brandkit, teme pentru prezentări, prompt-master, **prompt-agent** (la prima cerere de lucru îți arată promptul optimizat și pornește doar după ce aprobi), NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) **podcast-insights** (fișă de idei verificabile din podcasturi) și **browser-harness** (Claude lucrează într-un browser real, pe sesiunea ta deschisă) |
+| `creator-skills` | 15 skill-uri, fiecare instalat separat (14 din acest repo, plus `browser-harness` de la browser-use, MIT): humanizer, brandkit, teme pentru prezentări, prompt-master, **prompt-flow** (la prima cerere de lucru îți arată promptul optimizat și pornește doar după ce aprobi), NotebookLM, **social-seo** (descrieri și titluri găsite în căutare pe Instagram, YouTube, Shorts) **podcast-insights** (fișă de idei verificabile din podcasturi) și **browser-harness** (Claude lucrează într-un browser real, pe sesiunea ta deschisă) |
 | `ecc` | montaj video, clipuri din cod (Remotion), prezentări HTML animate, sistem de conținut pe rețele |
 | `marketing` | postări, campanii, secvențe email, analiza concurenței (`competitive-brief`), audit SEO (Anthropic) |
 | `design` | feedback pe design-uri (Anthropic) |

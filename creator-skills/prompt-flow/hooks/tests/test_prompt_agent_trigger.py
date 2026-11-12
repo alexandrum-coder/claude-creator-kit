@@ -51,7 +51,7 @@ class TestUserPromptSubmit(CuDirector):
     def test_prompt_lung_la_inceput_intervine_fara_marcaj(self):
         out = self.decide(ups(LUNG))
         self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "UserPromptSubmit")
-        self.assertIn("prompt-agent", out["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("prompt-flow", out["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(self.marcaje(), [])
 
     def test_dupa_marcaj_nu_mai_intervine(self):
@@ -73,7 +73,7 @@ class TestUserPromptSubmit(CuDirector):
         self.assertIsNone(self.decide(ups("fă un raport lunar")))
 
     def test_comanda_slash_nu_intervine(self):
-        self.assertIsNone(self.decide(ups("/prompt-agent " + LUNG)))
+        self.assertIsNone(self.decide(ups("/prompt-flow " + LUNG)))
         self.assertIsNone(self.decide(ups("  /compact păstrează doar deciziile importante de azi")))
 
     def test_diacritice(self):

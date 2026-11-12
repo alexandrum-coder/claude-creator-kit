@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude skills for content work, one plugin per skill so an install adds only what is missing: presentations, social posts and SEO, brand, podcasts, prompts for image and video AI.",
-    "version": "2.1.0"
+    "version": "2.1.1"
   },
   "plugins": [
     {
@@ -45,12 +45,12 @@
       ]
     },
     {
-      "name": "prompt-agent",
+      "name": "prompt-flow",
       "description": "La prima cerere de lucru din sesiune îți arată promptul optimizat și pornește doar după ce aprobi. Are nevoie de prompt-master.",
-      "source": "./creator-skills/prompt-agent",
+      "source": "./creator-skills/prompt-flow",
       "strict": false,
       "skills": [
-        "./skills/prompt-agent"
+        "./skills/prompt-flow"
       ],
       "agents": [
         "./agents/prompt-agent.md"

@@ -56,9 +56,9 @@ has_tty() { [ -r /dev/tty ] && { : < /dev/tty; } 2>/dev/null; }
 #   kind group:  members are skills, each one its own plugin in creator-kit
 #   kind plugin: one plugin; members = its skills when known in advance
 #   kind shorts: the claude-shorts skill; kind mcp: the transcript MCP server
-# prompt-agent needs prompt-master; both are members of this group.
+# prompt-flow needs prompt-master; both are members of this group.
 # Dependencies of an item are not a catalog field: requires_of() lists them.
-CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-agent notebooklm personal-assistant plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights browser-harness"
+CREATOR_SKILLS="humanizer brandkit theme-factory prompt-master prompt-flow notebooklm personal-assistant plan-taskmanager compact-handoff full-output-enforcement imagegen-frontend-web imagegen-frontend-mobile social-seo podcast-insights browser-harness"
 MK_SKILLS="social video content-strategy copy-editing"
 REMOTION_SKILLS="remotion-best-practices remotion-captions remotion-create remotion-docs remotion-interactivity remotion-license remotion-maps remotion-markup remotion-multimedia remotion-render remotion-saas remotion-studio remotion-upgrade"
 ITEMS=(

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Hook de declanșare pentru prompt-agent.
+"""Hook de declanșare pentru prompt-flow.
 
 UserPromptSubmit: la o cerere care poate fi de lucru, cât timp sesiunea nu are
-marcaj, adaugă o notă care îi cere modelului să încarce skill-ul prompt-agent.
+marcaj, adaugă o notă care îi cere modelului să încarce skill-ul prompt-flow.
 PreToolUse (Agent/Task): când pornește subagentul prompt-agent, scrie marcajul
 sesiunii, ca hook-ul să nu mai intervină în aceeași sesiune.
 
@@ -20,10 +20,10 @@ import tempfile
 import unicodedata
 
 INSTRUCTIUNE = (
-    "prompt-agent: sesiunea nu are încă un prompt optimizat. Dacă mesajul de mai "
+    "prompt-flow: sesiunea nu are încă un prompt optimizat. Dacă mesajul de mai "
     "sus cere o lucrare (nu e un salut, o întrebare de conversație sau o "
     "confirmare), încarcă întâi skill-ul al cărui nume se termină în "
-    "`prompt-agent` și urmează-l, înainte de orice altă unealtă. Altfel răspunde "
+    "`prompt-flow` și urmează-l, înainte de orice altă unealtă. Altfel răspunde "
     "normal și ignoră această notă."
 )
 
