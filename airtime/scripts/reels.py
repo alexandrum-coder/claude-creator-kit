@@ -147,9 +147,67 @@ def write_vertical_reframe(clips_dir, out) -> Path:
     return out
 
 
+def center_entry(w: int, h: int, duration: float) -> dict:
+    """Same crop as claude-shorts compute_crop_center: 9:16, full height, centred."""
+    crop_w = min(int(h * 9 / 16), w)
+    return {
+        "strategy": "center",
+        "source_resolution": f"{w}x{h}",
+        "crop": {"x": (w - crop_w) // 2, "y": 0, "w": crop_w, "h": h},
+        "output_resolution": "1080x1920",
+        "face_positions": [],
+        "duration": round(duration, 2),
+    }
+
+
+def write_center_reframe(clips_dir, out) -> Path:
+    """Fallback when compute_reframe fails (e.g. a mediapipe without mp.solutions)."""
+    clips = {}
+    for clip in sorted(Path(clips_dir).glob("clip_*.mp4")):
+        w, h, dur = probe(clip)
+        clips[clip.name] = center_entry(w, h, dur)
+    data = {"content_type": "talking-head", "clip_count": len(clips), "clips": clips}
+    out = Path(out)
+    out.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    return out
+
+
+# ---------------------------------------------------------------- export
+
+def export_reels(root, render_dir, out_dir, expected: int) -> list:
+    """Run claude-shorts export.sh. At a369fad it ends with GNU `paste -sd ','`, which BSD
+    paste on macOS rejects: the script writes every short_*_ig.mp4 and then exits 1. A failed
+    export is accepted only when exactly `expected` non-empty files exist and each one probes."""
+    out_dir = Path(out_dir)
+    try:
+        run_step("export", ["bash", Path(root) / "scripts" / "export.sh", "--input-dir", render_dir,
+                            "--platform", "instagram", "--output-dir", out_dir, "--force"])
+        failed = None
+    except StepError as e:
+        failed = e
+    exported = sorted(out_dir.glob("short_*_ig.mp4"))
+    if failed is not None:
+        if len(exported) != expected or any(p.stat().st_size == 0 for p in exported):
+            raise failed
+        for p in exported:
+            try:
+                if probe(p)[2] <= 0:
+                    raise failed
+            except StepError:
+                raise failed
+        # nothing for the coach to act on: logged on stderr, not added to `warnings`
+        print(f"export: export.sh failed after writing all {expected} files ({failed.detail.splitlines()[0]}); "
+              "files probed and kept", file=sys.stderr)
+    if len(exported) != expected:
+        raise StepError("export", f"expected {expected} exported reels, found {len(exported)}")
+    return exported
+
+
 # ----------------------------------------------------------------- build
 
-def build(curat, transcript_curat, approved, style, out_dir, orientation) -> list:
+def build(curat, transcript_curat, approved, style, out_dir, orientation, warnings=None) -> list:
+    if warnings is None:
+        warnings = []
     if style not in STYLES:
         raise StepError("build", f"unknown style {style}")
     if orientation not in ORIENTATIONS:
@@ -182,9 +240,13 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation) -> lis
 
     reframe = work / "reframe.json"
     if orientation == "horizontal":
-        run_step("compute_reframe", [py, root / "scripts" / "compute_reframe.py",
-                                     "--clips-dir", clips_dir, "--content-type", "talking-head",
-                                     "--output", reframe])
+        try:
+            run_step("compute_reframe", [py, root / "scripts" / "compute_reframe.py",
+                                         "--clips-dir", clips_dir, "--content-type", "talking-head",
+                                         "--output", reframe])
+        except StepError:
+            write_center_reframe(clips_dir, reframe)
+            warnings.append("Urmărirea feței nu a mers; reels-urile folosesc cadrul din centru.")
     else:
         write_vertical_reframe(clips_dir, reframe)
 
@@ -199,12 +261,7 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation) -> lis
     if len(rendered) != len(segments):
         raise StepError("render", f"expected {len(segments)} rendered reels, found {len(rendered)}")
 
-    run_step("export", ["bash", root / "scripts" / "export.sh", "--input-dir", render_dir,
-                        "--platform", "instagram", "--output-dir", out_dir, "--force"])
-    exported = sorted(out_dir.glob("short_*_ig.mp4"))
-    if len(exported) != len(segments):
-        raise StepError("export", f"expected {len(segments)} exported reels, found {len(exported)}")
-    return exported
+    return export_reels(root, render_dir, out_dir, len(segments))
 
 
 # ------------------------------------------------------------------- CLI
@@ -228,9 +285,12 @@ def main(argv=None) -> int:
         if args.cmd == "transcribe":
             res = {"transcript": str(transcribe(args.video, args.out, args.model))}
         else:
+            warnings = []
             paths = build(args.curat, args.transcript, args.approved, args.style,
-                          args.out, args.orientation)
+                          args.out, args.orientation, warnings=warnings)
             res = {"reels": [str(x) for x in paths]}
+            if warnings:
+                res["warnings"] = warnings
     except StepError as e:
         print(json.dumps({"error": str(e), "step": e.step}, ensure_ascii=False))
         return 1

@@ -103,7 +103,7 @@ Din `candidati.json` arată un tabel: Nr, Moment (`mm:ss`-`mm:ss`), Durată, Sco
 
 ### 6. Reels și descrieri
 
-Cheamă agentul cu `COMANDA: reels` și `STIL: <stilul>`. El randează în `<RUN_DIR>/reels` și scrie `instagram.json` (descriere, hashtaguri, text alternativ; cuvântul-cheie în cârlig și în prima propoziție, 3-5 hashtaguri, limba din profil). Dacă profilul are `voice` sau `brand-voice` e instalat, descrierile iau acea voce. La `kind: reel`, agentul poate fi chemat la fel.
+Cheamă agentul cu `COMANDA: reels` și `STIL: <stilul>`. El randează în `<RUN_DIR>/reels` și scrie `instagram.json` (descriere, hashtaguri, text alternativ; cuvântul-cheie în cârlig și în prima propoziție, 3-5 hashtaguri, limba din profil). Dacă profilul are `voice` sau `brand-voice` e instalat, descrierile iau acea voce. La `kind: reel`, agentul poate fi chemat la fel. Dacă blocul are `Avertismente`, spune-i coachului pe un rând (de exemplu: "Urmărirea feței n-a mers; reels-urile folosesc cadrul din centru. Uită-te la ele înainte de confirmare.").
 
 ### 7. Tabelul de confirmare
 

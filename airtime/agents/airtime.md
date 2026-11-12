@@ -197,7 +197,7 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
 1. Orientarea: `compose.py probe "$RUN_DIR/curat.mp4"`; `vertical` dacă `height > width`, altfel `horizontal`.
 2. Randează (`--out` e un dosar pe rulare):
    `"$PY" "$SCRIPTS/reels.py" build --curat "$RUN_DIR/curat.mp4" --transcript "$RUN_DIR/transcript-curat.json" --approved "$RUN_DIR/reels-aprobate.json" --style "$STIL" --orientation "$ORIENTARE" --out "$RUN_DIR/reels"`
-   Poate dura câteva minute. stdout e un JSON `{"reels": [căile fișierelor short_NN_ig.mp4]}`; la eroare, `{"error", "step"}` și cod 1.
+   Poate dura câteva minute. stdout e un JSON `{"reels": [căile fișierelor short_NN_ig.mp4]}`, cu `warnings` (listă) când un pas a avut o problemă ocolită (de exemplu, urmărirea feței n-a mers și s-a folosit cadrul din centru); la eroare, `{"error", "step"}` și cod 1.
 3. Textele pentru Instagram. Ia segmentele din `reels-aprobate.json` și, pentru fiecare reel din `reels` (aceeași ordine ca segmentele sortate după `id`), scrie în `RUN_DIR/instagram.json` o listă:
    ```json
    [{"file": "<cale completă .mp4>", "caption": "...", "hashtags": ["#...", "... 3-5 ..."], "alt_text": "..."}]
@@ -216,6 +216,7 @@ Reels randate: <n> în <RUN_DIR>/reels/
   <nume fișier>  <mm:ss>  (câte un rând, cel mult 5)
 Texte: <RUN_DIR>/instagram.json
 Stil: <STIL>, orientare: <orientare>
+Avertismente: <fiecare din warnings, pe scurt>   (numai dacă există)
 Nepublicat: urcarea și programarea rămân în sarcina skill-ului.
 ```
 

@@ -177,3 +177,128 @@ def test_transcribe_cli_default_model_is_medium(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(reels, "transcribe", fake)
     reels.main(["transcribe", "--video", str(tmp_path / "v.mp4"), "--out", str(tmp_path / "t.json")])
     assert seen["model"] == "medium"
+
+
+def _fake_export_fails_after_writing(calls, n_files, content=b"x"):
+    """claude-shorts export.sh on macOS: writes the files, then exits 1 (GNU `paste -sd ','`)."""
+    base = _fake_run_factory(calls, 3, 0)
+
+    def fake(step, args, cwd=None):
+        base(step, args, cwd)
+        if step == "export":
+            from pathlib import Path
+            d = Path(str(args[args.index("--output-dir") + 1]))
+            for i in range(1, n_files + 1):
+                (d / f"short_{i:02d}_ig.mp4").write_bytes(content)
+            raise reels.StepError("export", "exit 1: paste: -: No such file")
+        return ""
+    return fake
+
+
+def test_build_accepts_export_files_when_export_sh_exits_1(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(reels, "run_step", _fake_export_fails_after_writing([], 3))
+    monkeypatch.setattr(reels, "probe", lambda p: (1080, 1920, 5.0))
+    curat, tr, ap = _inputs(tmp_path)
+    warnings = []
+    out = reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal", warnings=warnings)
+    assert [p.name for p in out] == ["short_01_ig.mp4", "short_02_ig.mp4", "short_03_ig.mp4"]
+    assert warnings == []  # nothing for the coach to act on
+    assert "export.sh failed after writing all 3 files" in capsys.readouterr().err
+
+
+def test_build_export_failure_with_missing_file_is_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, "run_step", _fake_export_fails_after_writing([], 2))
+    monkeypatch.setattr(reels, "probe", lambda p: (1080, 1920, 5.0))
+    curat, tr, ap = _inputs(tmp_path)
+    with pytest.raises(reels.StepError) as e:
+        reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert e.value.step == "export"
+
+
+def test_build_export_failure_with_broken_file_is_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, "run_step", _fake_export_fails_after_writing([], 3))
+
+    def bad_probe(p):
+        raise reels.StepError("ffprobe", "exit 1: moov atom not found")
+    monkeypatch.setattr(reels, "probe", bad_probe)
+    curat, tr, ap = _inputs(tmp_path)
+    with pytest.raises(reels.StepError) as e:
+        reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert e.value.step == "export"
+
+
+def test_build_export_failure_with_empty_files_is_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, "run_step", _fake_export_fails_after_writing([], 3, content=b""))
+    monkeypatch.setattr(reels, "probe", lambda p: (1080, 1920, 5.0))
+    curat, tr, ap = _inputs(tmp_path)
+    with pytest.raises(reels.StepError) as e:
+        reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert e.value.step == "export"
+
+
+def test_export_with_real_bash_and_bsd_paste_stub(tmp_path, monkeypatch, capsys):
+    """export.sh ending in `paste -sd ','` under a BSD-like paste (needs `-`): files kept, warning set."""
+    root = tmp_path / "shorts"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "export.sh").write_text(
+        "#!/usr/bin/env bash\nset -euo pipefail\n"
+        "while [[ $# -gt 0 ]]; do case \"$1\" in --input-dir) IN=\"$2\"; shift 2;; "
+        "--output-dir) OUT=\"$2\"; shift 2;; --platform) shift 2;; *) shift;; esac; done\n"
+        "R=()\nfor f in \"$IN\"/short_*.mp4; do b=$(basename \"$f\" .mp4); "
+        "printf x > \"$OUT/${b}_ig.mp4\"; R+=(\"$b\"); done\n"
+        "J=$(printf '%s\\n' \"${R[@]}\" | paste -sd ',')\necho \"$J\"\n")
+    bsd = tmp_path / "bsdbin"
+    bsd.mkdir()
+    (bsd / "paste").write_text("#!/bin/sh\necho 'usage: paste [-s] [-d delimiters] file ...' >&2\nexit 1\n")
+    (bsd / "paste").chmod(0o755)
+    monkeypatch.setenv("PATH", str(bsd) + ":" + __import__("os").environ["PATH"])
+    monkeypatch.setenv("SHORTS_ROOT", str(root))
+    render = tmp_path / "render"
+    render.mkdir()
+    for i in (1, 2):
+        (render / f"short_{i:02d}.mp4").write_bytes(b"r")
+    out = tmp_path / "out"
+    out.mkdir()
+    monkeypatch.setattr(reels, "probe", lambda p: (1080, 1920, 5.0))
+    res = reels.export_reels(root, render, out, 2)
+    assert [p.name for p in res] == ["short_01_ig.mp4", "short_02_ig.mp4"]
+    assert "export.sh failed after writing all 2 files" in capsys.readouterr().err
+
+
+def test_build_falls_back_to_center_crop_when_reframe_fails(tmp_path, monkeypatch):
+    calls = []
+    base = _fake_run_factory(calls, 3, 3)
+
+    def fake(step, args, cwd=None):
+        if step == "compute_reframe":
+            calls.append((step, [str(a) for a in args]))
+            raise reels.StepError("compute_reframe",
+                                  "exit 1: AttributeError: module 'mediapipe' has no attribute 'solutions'")
+        return base(step, args, cwd)
+
+    monkeypatch.setattr(reels, "run_step", fake)
+    monkeypatch.setattr(reels, "probe", lambda p: (1920, 1080, 5.0))
+    curat, tr, ap = _inputs(tmp_path)
+    warnings = []
+    out = reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal", warnings=warnings)
+    assert len(out) == 3
+    assert [c[0] for c in calls][-2:] == ["render", "export"]
+    data = json.loads((tmp_path / "out" / "work" / "reframe.json").read_text())
+    assert data["clip_count"] == 3
+    entry = data["clips"]["clip_01.mp4"]
+    assert entry["crop"] == {"x": 656, "y": 0, "w": 607, "h": 1080}
+    assert entry["source_resolution"] == "1920x1080"
+    assert entry["output_resolution"] == "1080x1920"
+    assert entry["strategy"] == "center"
+    assert any("feței" in w for w in warnings)
+
+
+def test_cli_build_prints_warnings(tmp_path, monkeypatch, capsys):
+    def fake_build(*a, warnings=None, **k):
+        warnings.append("avertisment de test")
+        return [tmp_path / "short_01_ig.mp4"]
+    monkeypatch.setattr(reels, "build", fake_build)
+    rc = reels.main(["build", "--curat", "c", "--transcript", "t", "--approved", "a", "--out", str(tmp_path)])
+    assert rc == 0
+    res = json.loads(capsys.readouterr().out)
+    assert res["warnings"] == ["avertisment de test"]

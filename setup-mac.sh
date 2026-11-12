@@ -669,6 +669,12 @@ PY
         else
           echo "    instalez uneltele de transcriere și randare (un minut sau două)..."
           if (cd "$SHORTS_DIR" && bash setup.sh) > "$SHORTS_DIR/setup.log" 2>&1; then ok "claude-shorts: unelte instalate"
+            # setup.sh installs mediapipe unpinned; mediapipe 1.x has no mp.solutions, so face
+            # tracking fails. AirTime's reels.py then uses a centred 9:16 crop; say so here.
+            SPY="$HOME/.video-skill/bin/python3"; [ -x "$SPY" ] || SPY="$HOME/.shorts-skill/bin/python3"
+            if [ -x "$SPY" ] && ! "$SPY" -c 'import mediapipe as mp; mp.solutions.face_detection' >/dev/null 2>&1; then
+              warn "claude-shorts: urmărirea feței nu e disponibilă (mediapipe nou); reels-urile din clipuri orizontale folosesc cadrul din centru"
+            fi
           else warn "uneltele n-au mers, vezi $SHORTS_DIR/setup.log"; fi
         fi
       else
