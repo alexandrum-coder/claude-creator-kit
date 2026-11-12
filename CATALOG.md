@@ -109,7 +109,7 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 
 **Ce face.** Pornește de la un singur clip filmat de tine. Propune tăieturile și intro-ul, scrie titlul, descrierea, tag-urile și capitolele pentru YouTube, alege 3-5 momente pentru reels Instagram, cu text și hashtag-uri. Programează video-ul pe YouTube și reels-urile câte unul pe zi, dar numai după ce scrii „da” sau „confirm” la tabelul final. Nu se taie nimic din porțiunile de demonstrație.
 
-**De ce are nevoie.** Se instalează odată cu el, dintr-o comandă (`--doar "14"`, vezi [README.md](README.md#airtime)):
+**De ce are nevoie.** Se instalează odată cu el, dintr-o comandă (`--doar "13"`, vezi [README.md](README.md#airtime)):
 
 | Dependență | Pentru ce |
 |---|---|

@@ -81,7 +81,7 @@ AirTime ia un clip și îți propune un montaj, un titlu cu descriere și capito
 AirTime e ultimul din listă (numărul 13). Scriptul îl instalează împreună cu tot ce are nevoie: `social-seo`, `brandkit` și `browser-harness` (numai aceste trei skill-uri din `creator-skills`), `ecc`, `marketing`, `brand-voice`, `remotion-skills` și `claude-shorts`, plus un mediu Python și șablonul de intro în `~/.airtime`. Ce ai deja nu se instalează a doua oară.
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "14"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "13"
 ```
 
 ### Conectarea, o singură dată

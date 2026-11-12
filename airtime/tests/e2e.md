@@ -211,7 +211,7 @@ CREATOR_KIT_SOURCE=<worktree> CREATOR_KIT_APP_DIR=$S/app14 SKIP_SHORTS_DEPS=1`, 
 ### Step 1: install (observed)
 
 ```
-bash setup-mac.sh --doar 14        # item 14 is "airtime", the number printed in the list
+bash setup-mac.sh --doar 13        # item 13 is "airtime", the number printed in the list
 ```
 
 Exit 0, 63 s. Items installed in dependency order: social-seo, brandkit, browser-harness, ecc, marketing, brand-voice,

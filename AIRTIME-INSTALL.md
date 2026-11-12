@@ -20,7 +20,7 @@ AirTime ia un singur clip filmat de tine și propune un montaj, un video YouTube
 - **Ce faci:** deschide aplicația **Terminal** (Cmd+Space, scrie „Terminal”, Enter), lipește comanda de mai jos și apasă Enter:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "14"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/alexandrum-coder/claude-creator-kit/main/setup-mac.sh)" -- --doar "13"
 ```
 
 `14` este numărul din lista scriptului la care apare „airtime”. Scriptul îl alege împreună cu tot ce are nevoie.
