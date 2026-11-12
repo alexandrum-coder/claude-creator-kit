@@ -49,3 +49,42 @@ def test_save_profile_mode_600_for_tokens_dir():
     assert stat.S_IMODE(tokens.stat().st_mode) == 0o700
     assert c.token_path("principal").name == "principal-youtube.json"
     assert c.client_path().name == "google-client.json"
+
+
+def _speed(content: str) -> None:
+    c.home().mkdir(parents=True, exist_ok=True)
+    (c.home() / "speed.json").write_text(content)
+
+
+def test_whisper_model_speed_json_wins():
+    _speed(json.dumps({"model": "small", "sec_per_min": 40.0}))
+    assert c.whisper_model("principal") == "small"
+
+
+def test_whisper_model_ro_without_speed_json_is_medium():
+    assert c.whisper_model("principal") == "medium"
+
+
+def test_whisper_model_other_language_is_small():
+    c.save_profile("en", {"language": "en"})
+    assert c.whisper_model("en") == "small"
+
+
+def test_whisper_model_speed_json_without_model_falls_back():
+    _speed(json.dumps({"sec_per_min": 40.0}))
+    assert c.whisper_model("principal") == "medium"
+    _speed(json.dumps({"model": ""}))
+    assert c.whisper_model("principal") == "medium"
+
+
+def test_whisper_model_broken_speed_json_falls_back():
+    _speed("{not json")
+    assert c.whisper_model("principal") == "medium"
+    c.save_profile("en", {"language": "en"})
+    assert c.whisper_model("en") == "small"
+
+
+def test_whisper_model_broken_profile_falls_back_to_ro():
+    c.save_profile("stricat", {})
+    (c.home() / "profiles" / "stricat.json").write_text("{not json")
+    assert c.whisper_model("stricat") == "medium"

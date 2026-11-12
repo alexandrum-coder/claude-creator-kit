@@ -102,3 +102,39 @@ def test_agent_social_seo_missing_is_empty(tmp_path):
     env = fake_install(tmp_path, {"brandkit@creator-kit": [{"installPath": str(other)}]})
     block = AGENT_PY + bash_block(AGENT, "SEO=$(")
     assert run_block(block, env, 'echo "[$SEO]"') == "[]"
+
+
+def _model_env(tmp_path: Path) -> dict:
+    env = fake_install(tmp_path, {})
+    env["SCRIPTS"] = str(PLUGIN / "scripts")
+    env["PROFIL"] = "principal"
+    return env
+
+
+def test_agent_model_medium_for_ro_without_speed_json(tmp_path):
+    env = _model_env(tmp_path)
+    block = AGENT_PY + bash_block(AGENT, "MODEL=$(")
+    assert run_block(block, env, 'echo "$MODEL"') == "medium"
+
+
+def test_agent_model_from_speed_json(tmp_path):
+    env = _model_env(tmp_path)
+    Path(env["AIRTIME_HOME"], "speed.json").write_text(json.dumps({"model": "small"}))
+    block = AGENT_PY + bash_block(AGENT, "MODEL=$(")
+    assert run_block(block, env, 'echo "$MODEL"') == "small"
+
+
+def test_agent_model_small_for_other_language(tmp_path):
+    env = _model_env(tmp_path)
+    prof = Path(env["AIRTIME_HOME"], "profiles")
+    prof.mkdir()
+    (prof / "principal.json").write_text(json.dumps({"language": "en"}))
+    block = AGENT_PY + bash_block(AGENT, "MODEL=$(")
+    assert run_block(block, env, 'echo "$MODEL"') == "small"
+
+
+def test_agent_model_small_when_python_fails(tmp_path):
+    env = _model_env(tmp_path)
+    os.unlink(Path(env["AIRTIME_HOME"], "venv", "bin", "python"))
+    block = AGENT_PY + bash_block(AGENT, "MODEL=$(")
+    assert run_block(block, env, 'echo "$MODEL"') == "small"

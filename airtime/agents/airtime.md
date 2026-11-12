@@ -59,11 +59,10 @@ SHORTS_PY=$(cd "$SCRIPTS" && "$PY" -c 'import reels; print(reels.shorts_python()
 - Scripturile se rulează cu `"$PY" "$SCRIPTS/<script>.py"`. Pașii claude-shorts (doar transcrierea) se rulează cu `"$SHORTS_PY"`, dar prin `reels.py transcribe`, care îl alege singur.
 - Calea clipului poate conține spații și diacritice: pune-o mereu între ghilimele duble.
 - Profilul: `"$PY" -c` cu `sys.path.insert(0, "$SCRIPTS")`, `import airtime_config as c; p = c.load_profile("<PROFIL>")`. Cheile folosite: `channel`, `intro_text`, `colors`, `youtube_time`, `reels_time`, `keywords`, `clip_type`, `timezone`, `shorts`, `voice` (opțional).
-- Modelul de transcriere, calculat în preambul și folosit ca `$MODEL`: `model` din `"$AIRTIME_HOME/speed.json"`; dacă fișierul sau cheia lipsesc, `small`:
+- Modelul de transcriere, calculat în preambul și folosit ca `$MODEL`: `model` din `"$AIRTIME_HOME/speed.json"` (testul de viteză a măsurat calculatorul); dacă fișierul sau cheia lipsesc, `medium` când `language` din profil e `ro`, altfel `small`. Dacă Python pică, `small`:
   ```bash
-  MODEL=$("$PY" -c 'import json,os,sys
-try: print(json.load(open(os.path.join(os.environ["AIRTIME_HOME"],"speed.json"))).get("model") or "small")
-except Exception: print("small")')
+  MODEL=$(cd "$SCRIPTS" && "$PY" -c 'import sys, airtime_config as c; print(c.whisper_model(sys.argv[1]))' "$PROFIL" 2>/dev/null)
+  [ -n "$MODEL" ] || MODEL=small
   ```
 - Limba textelor: `language` din profil (implicit `ro`). Titlurile de capitole, titlul și descrierea YouTube, caption-urile și textul alternativ de la `texte` și `reels` se scriu în limba aceasta, iar `language` din `youtube-meta.json` e aceeași valoare. Instrucțiunile tale și blocurile întoarse rămân în română.
 

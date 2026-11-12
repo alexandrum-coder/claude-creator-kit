@@ -50,6 +50,25 @@ def load_profile(name: str | None = None) -> dict:
     return profile
 
 
+def whisper_model(profile_name: str | None = None) -> str:
+    """Whisper model for transcription.
+
+    The speed test result (speed.json) wins, because it measured this machine.
+    Without it: medium for Romanian, small for other languages.
+    """
+    try:
+        model = json.loads((home() / "speed.json").read_text(encoding="utf-8")).get("model")
+        if isinstance(model, str) and model:
+            return model
+    except Exception:
+        pass
+    try:
+        language = load_profile(profile_name).get("language") or "ro"
+    except Exception:
+        language = "ro"
+    return "medium" if language == "ro" else "small"
+
+
 def save_profile(name: str, data: dict) -> Path:
     h = home()
     h.mkdir(parents=True, exist_ok=True)
