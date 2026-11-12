@@ -107,31 +107,33 @@ The check walks every `tool_use` block, flags any Bash command that mentions `yo
 "content_type"}`. In run B and run C the agent/skill wrote exactly that shape and `reels.py build` accepted it (run C
 rendered 3 reels from it; the manual build on run B's file rendered 3). The bare-list shape was not tried in this test.
 
-**(b) Short re-upload risk (open, not fixed).** The duplicate guard of `youtube.py upload` keys on the sha256 of the file
+**(b) Short re-upload risk (open, not fixed in code; resolved as rules in d1be3ce).** The duplicate guard of `youtube.py upload` keys on the sha256 of the file
 in `uploaded.json`. If a reel or Short is re-rendered (new style, a changed cut, a new run of `reels.py build`), the bytes
 change, the sha256 is new, and the guard no longer sees the earlier upload, so the same Short could be uploaded twice. The
 skill's `calendar.json` states (`programat`, `esuat` with an `id` in `ref`) protect a single run, not a re-render. Not
 exercised here (no real upload); parked for the final review. This task touches only `airtime/tests/`.
+   Update: d1be3ce added `in_curs`, the Planner lookup on resume and the rule that a `programat` item is never re-rendered
+   before the coach removes the old one by hand. These are prose rules for the model, not code; untested.
 
 ## Found in the plugin / environment (not fixed here)
 
-1. **No plugin root under `--plugin-dir`.** The agent's preamble uses `CLAUDE_PLUGIN_ROOT`, else the `airtime`
+1. **[RESOLVED in 8f82872: the skill got the same preamble as the agent, no disk search]** **No plugin root under `--plugin-dir`.** The agent's preamble uses `CLAUDE_PLUGIN_ROOT`, else the `airtime`
    `installPath` from `$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json`. With `claude -p --plugin-dir`, the agent's
    Bash had no `CLAUDE_PLUGIN_ROOT` and `cfg-test` has no `installed_plugins.json`, so run A failed with
    "AirTime nu e instalat complet". The test exports `CLAUDE_PLUGIN_ROOT` itself. A marketplace install writes
    `installed_plugins.json`, so the fallback should work there; that path is untested until Task 12.
-2. **`reels` fails on a horizontal clip with a fresh claude-shorts environment.** `~/.shorts-skill` has mediapipe 1.2.2,
+2. **[RESOLVED in 858b891 (C2): `reels.py` falls back to a centred crop and warns the coach; real face tracking is still off on a fresh install]** **`reels` fails on a horizontal clip with a fresh claude-shorts environment.** `~/.shorts-skill` has mediapipe 1.2.2,
    which has no `mp.solutions`; claude-shorts `compute_reframe.py` calls `mp.solutions.face_detection`:
    `AttributeError: module 'mediapipe' has no attribute 'solutions'` (run B, `reels`). `setup.sh` installs mediapipe
    without a version pin, so a new install gets the same. Task 5 never ran the horizontal reframe for real. Needs a pinned
    mediapipe (0.10.x) in the setup, or a plugin-side guard.
-3. **`export.sh` of claude-shorts fails on macOS.** It ends with `paste -sd ','` (GNU form); BSD `paste` needs `-`, so
+3. **[RESOLVED in 858b891 (C1): `export_reels()` keeps the files when all expected reels exist and probe fine]** **`export.sh` of claude-shorts fails on macOS.** It ends with `paste -sd ','` (GNU form); BSD `paste` needs `-`, so
    the script exits 1 after writing the files and `reels.py` reports `export: exit 1`. Found when the render finally
    worked.
 4. **The scratch claude-shorts clone has no `node_modules`** (`setup.sh` was not run, by ruling), so its Remotion
    render fails with `Cannot find package '@remotion/bundler'`.
 
-5. **Isolation leak.** See "Isolation leaks" below: the skill and agent read `~/.airtime`, `~/AirTime`, `~/.claude/plugins` and search
+5. **[PARTLY RESOLVED in 8f82872: no literal `~/.airtime/profiles`, no `find /`, stop at the first miss]** **Isolation leak.** See "Isolation leaks" below: the skill and agent read `~/.airtime`, `~/AirTime`, `~/.claude/plugins` and search
    the disk with `find /` when the plugin root or `installed_plugins.json` is missing.
 
 For the test only, `make_shorts_copy.sh` works around 2-4 in a copy under `$SCR` (the original clone and `~/.shorts-skill`
@@ -224,6 +226,8 @@ printed `browser-harness: instalat`; `$S/uv-bin` holds `browser-harness` and `br
 `warning: ... uv-bin is not on your PATH`, so the "installed" line is printed although the command is not usable from the
 shell. Every other item printed "(actualizat)" (rerun updates; the `--force` of `uv tool install` reinstalls each time).
 Observed, as expected from `setup-mac.sh:569-572`. **PASS for the uv path executing; the PATH message is a finding below.**
+Caveat: the uv-installed `browser-harness` is not usable from the shell while its bin dir (`$S/uv-bin`) is off PATH, so
+this PASS covers the install executing, not a working command.
 
 ### Step 2: check (observed)
 
@@ -241,6 +245,13 @@ brand-voice, with:
 the same 13 lines. **FAIL against the expected result**: besides YouTube and the Instagram message there is one more
 cross: social-seo (finding 1). The skill IS installed (`plugins/cache/creator-kit/social-seo/<sha>/SKILL.md`).
 
+**Rerun after e214125: PASS** (controller, 2026-11-12 08:54, isolated install `$S/inst` with the installed `check.sh`
+refreshed from the branch; `plugin_present` now accepts `SKILL.md` at the plugin root). `setup-mac.sh --check` and
+`check.sh --quick` show "✔ social-seo"; the only ✘ is "YouTube: canalul nu e conectat", plus the
+"… Instagram: se verifică în conversație" line.
+Caveat: the shorts venv tick came from the fallback to the real `~/.shorts-skill` (`SKIP_SHORTS_DEPS=1` left the installed
+shorts without a venv), see Found item 3.
+
 ### Step 3: run C on the installed copy (observed)
 
 Plugin dir: `make_e2e_copy.sh` from `$S/inst/plugins/cache/creator-kit/airtime/0.1.0` into `$S/airtime-e2e/plugin-c14`
@@ -248,7 +259,13 @@ Plugin dir: `make_e2e_copy.sh` from `$S/inst/plugins/cache/creator-kit/airtime/0
 `speed.json` written there with the same snippet as `run.sh prep`), `AIRTIME_RUNS=$S/airtime-e2e/runs-c14`,
 `CLAUDE_CONFIG_DIR=$S/cfg-test` (logged-in profile), `SHORTS_ROOT` as in Task 10 (`shorts-e2e`: the install here skipped
 the shorts dependencies). To parametrise paths, `run.sh` got env overrides `C_NAME C_HOME C_RUNS C_PLUGIN C_FAKECFG`;
-defaults are the Task 10 paths and names, so `run.sh c` / `checkc` behave as before.
+defaults are the Task 10 paths and names, so `run.sh c` / `checkc` behave as before. The overrides:
+
+- `C_NAME`: run name (log and folder names), default `runC`.
+- `C_HOME`: `AIRTIME_HOME` for the run.
+- `C_RUNS`: `AIRTIME_RUNS`, the runs folder.
+- `C_PLUGIN`: the plugin directory (the e2e copy with the doubles).
+- `C_FAKECFG`: the fake config dir used by the doubled `check.sh`.
 
 ```
 C_NAME=runC14 C_HOME=... C_RUNS=... C_PLUGIN=... C_FAKECFG=... bash airtime/tests/e2e/run.sh c      # 12m57s, success, 19 turns
@@ -266,10 +283,12 @@ Real-home scan (`logs/scan2.py runC14`): 6 references, all reads (the `expanduse
 `find`/`cat` of `$HOME/.claude/plugins/installed_plugins.json`), 0 writes; `~/.airtime` and `~/AirTime` absent.
 **PASS** (same result as Task 10). The reply also said "skill-ul `social-seo` nu era instalat": the same false negative as
 step 2, so the texts were written without that skill (finding 1).
+Caveat: this PASS covers the stop condition only (the run stopped at the confirmation table, nothing uploaded). The agent
+wrote the texts without social-seo in that run, which predates 8f82872.
 
 ### Found, not fixed
 
-1. `check.sh` `plugin_present NAME skill` looks for `<installPath>/skills/NAME/SKILL.md`, but social-seo installs as a
+1. **[RESOLVED: check.sh in e214125, agent side in 8f82872]** `check.sh` `plugin_present NAME skill` looks for `<installPath>/skills/NAME/SKILL.md`, but social-seo installs as a
    plugin with `SKILL.md` at the plugin root. The installed skill is reported missing in `--check`, `check.sh --quick` and by
    the agent in run C. The e2e fake config uses the `skills/<name>/` layout, so Task 10 could not show it. The installer's
    own `requires_of()` treats the dependency as satisfied, so the two disagree.
@@ -280,6 +299,9 @@ step 2, so the texts were written without that skill (finding 1).
    the installed profile.
 4. The run C agent still reads `$HOME/.claude/plugins/installed_plugins.json` (see Task 10 findings): not changed by the
    install.
+
+Run C was not rerun after the fixes (they touch `check.sh` detection, the skill and agent, reels, compose and youtube auth);
+the supervised real run on Doru's Mac is the next end-to-end evidence.
 
 ## How to repeat
 
