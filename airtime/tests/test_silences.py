@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -257,6 +258,15 @@ def test_tonemap_chain_only_for_hdr():
     assert "tin=arib-std-b67" in hlg and "tin=smpte2084" in pq
 
 
+@pytest.fixture(autouse=True)
+def _fresh_has_filter_cache():
+    silences.has_filter.cache_clear()
+    yield
+    silences.has_filter.cache_clear()
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not silences.has_filter("zscale"),
+                    reason="ffmpeg without zscale")
 def test_apply_tone_maps_iphone_hlg(tmp_path):
     """iPhone HDR (HLG, 10-bit, bt2020) comes out of apply as 8-bit bt709 SDR."""
     video = tmp_path / "iPhone HDR ș.mov"

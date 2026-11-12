@@ -99,6 +99,7 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
 
 1. Aplică tăieturile:
    `"$PY" "$SCRIPTS/silences.py" apply --video "$VIDEO" --cuts "$RUN_DIR/cuts-aprobate.json" --out "$RUN_DIR/curat.mp4" --map "$RUN_DIR/map.json"`
+   Citește stdout-ul: dacă are `{"warnings": [...]}`, pune-le în bloc pe rândul `Avertismente:`. Dacă iese cu cod 1 și `{"error": ..., "step": "apply"}`, întoarce `EROARE: <textul din error>` și oprește-te.
 2. Remapează transcriptul:
    `"$PY" "$SCRIPTS/silences.py" remap --transcript "$RUN_DIR/transcript.json" --map "$RUN_DIR/map.json" --out "$RUN_DIR/transcript-curat.json"`
 3. Dimensiunile clipului tăiat: `"$PY" "$SCRIPTS/compose.py" probe "$RUN_DIR/curat.mp4"` (JSON cu `width, height, fps, duration, has_audio`).
@@ -138,6 +139,7 @@ Intro: <secunde> s
 Capitole (<n>):
   <mm:ss> <titlu>   (cel mult 8 rânduri, pe timpul final)
 Transcript tăiat: <RUN_DIR>/transcript-curat.json
+Avertismente: <fiecare din warnings de la apply, pe scurt>   (numai dacă există)
 ```
 
 Păstrează blocul sub 10 rânduri; dacă sunt multe capitole, scrie numai primele și `... vezi chapters-youtube.json`.
