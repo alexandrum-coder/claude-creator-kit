@@ -4,7 +4,7 @@ Data: 2026-11-10. Repo: `alexandrum-coder/claude-creator-kit`, marketplace `crea
 
 ## De ce
 
-Un coleg al lui Doru, antrenor de fitness, filmează un clip întreg pe MacBook. Nu e tehnic. Vrea ca din acel clip să iasă, fără muncă manuală:
+Un coleg al lui Doru, antrenor de fitness, filmează un clip întreg pe MacBook. Vrea ca din acel clip să iasă, fără muncă manuală:
 
 - un video lung pe YouTube, montat și programat;
 - 3–5 reels pe Instagram, programate, cu descrieri bune pentru căutare;
@@ -19,7 +19,7 @@ Succes: colegul scrie „AirTime”, dă clipul, răspunde la câteva întrebăr
 **Ținte**
 - Un singur cuvânt de pornire: „AirTime”.
 - Conexiunile la YouTube și la Meta se configurează o singură dată.
-- Instalarea întreagă o face un utilizator netehnic, fără ajutor.
+- Instalarea întreagă merge fără ajutor din afară.
 
 **Non-ținte**
 - TikTok, X, LinkedIn.
@@ -49,7 +49,7 @@ Succes: colegul scrie „AirTime”, dă clipul, răspunde la câteva întrebăr
 |---|---|---|---|
 | **A. Hibrid (aleasă de Doru)** | YouTube prin API. Instagram și Facebook prin browser, pe Business Suite. | Programare reală pe ambele platforme, Mac-ul poate fi închis. YouTube merge stabil. | Configurarea Google durează cam 20 de minute. Pasul de Instagram se poate strica dacă Meta schimbă interfața. |
 | B. Totul în browser | YouTube Studio și Business Suite, în browser. | Configurare de 5 minute. | Cea mai fragilă variantă. Clipul lung urcă încet prin browser. |
-| C. Totul prin API | YouTube API și Instagram API. | Cea mai robustă tehnic. | Cere aplicație Meta for Developers și token de 60 de zile. Pentru programare, Mac-ul trebuie pornit la oră. Prea grea pentru un utilizator netehnic. |
+| C. Totul prin API | YouTube API și Instagram API. | Cea mai robustă tehnic. | Cere aplicație Meta for Developers și token de 60 de zile. Pentru programare, Mac-ul trebuie pornit la oră. Prea multă întreținere pentru un singur coach. |
 
 **Browserul, decis de Doru:**
 - **Claude in Chrome** e metoda principală.

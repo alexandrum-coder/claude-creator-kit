@@ -1,6 +1,6 @@
 # AirTime: instalare și conectare
 
-AirTime ia un singur clip filmat de tine și propune un montaj, un video YouTube programat și 3-5 reels Instagram programate. Ghidul de față te duce prin instalare și prin cele două conectări, o singură dată. Se scrie pentru un MacBook și nu cere cunoștințe tehnice.
+AirTime ia un singur clip filmat de tine și propune un montaj, un video YouTube programat și 3-5 reels Instagram programate. Ghidul de față te duce prin instalare și prin cele două conectări, o singură dată. Pașii sunt pentru macOS.
 
 **Cum citești ghidul**
 - La fiecare pas găsești: contul de care ai nevoie, cât durează și cum verifici că a mers.
