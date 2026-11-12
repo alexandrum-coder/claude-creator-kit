@@ -1,6 +1,6 @@
 # personal-assistant
 
-Un agent care îți spune ce unealtă să folosești și, când e cazul, o pornește. Primește o cerere aprobată, de obicei de la prompt-agent, și o duce pe unul dintre trei drumuri:
+Un agent care îți spune ce unealtă să folosești și, când e cazul, o pornește. Primește o cerere aprobată, de obicei de la prompt-flow, și o duce pe unul dintre trei drumuri:
 
 | Cererea | Ce face |
 |---|---|
