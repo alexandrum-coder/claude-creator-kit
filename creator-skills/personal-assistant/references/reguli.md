@@ -30,7 +30,7 @@ Pentru fiecare rând, cauți în inventar numele exact al uneltei. Rândurile pe
 | 2 | `shorts` (skill separat) sau `videodb` | clipuri verticale scurte din clipul lung |
 | 3 | `remotion-video-creation` | intro, titluri, grafice generate din cod |
 | 4 | `social-seo` | titlu, descriere și hashtag-uri care se găsesc în căutare |
-| 5 | `postiz` (MCP) sau `social-publisher` | programarea postărilor |
+| 5 | `airtime` (YouTube Studio și Meta Business Suite) | programarea postărilor |
 
 ## 3. IT: skill-uri înrudite, după stack
 

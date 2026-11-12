@@ -1,6 +1,6 @@
 # Catalog complet: skill-uri, agenți, comenzi
 
-Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 11 pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, 583 elemente. Nu edita de mână: rulează din nou scriptul.
+Generat automat pe 2026-11-10 de `tools/genereaza-catalog.py`, dintr-o instalare de test făcută cu `setup-mac.sh`. 10 pluginuri instalate, skill-uri separate și skill-urile Anthropic care vin cu contul, 582 elemente. Nu edita de mână: rulează din nou scriptul.
 
 Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e completată de mână: ★★★ esențial pentru conținut fitness (prezentări, clipuri, postări), ★★ util, ★ ocazional, gol = irelevant pentru tine. Lista scurtă, explicată în română, e în [CATALOG.md](CATALOG.md).
 
@@ -16,7 +16,6 @@ Descrierile sunt ale autorilor, de obicei în engleză. Coloana **Fitness** e co
 | [ecc](#ecc) | marketplace `ecc` | instalat de setup-mac.sh | 314 | 71 | 98 | da |
 | [marketing](#marketing) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 8 | 0 | 0 |  |
 | [marketingskills](#marketingskills) | marketplace `creator-kit` | instalat de setup-mac.sh | 4 | 0 | 0 |  |
-| [postiz](#postiz) | marketplace `knowledge-work-plugins` | instalat de setup-mac.sh | 1 | 0 | 0 |  |
 | [remotion-skills](#remotion-skills) | marketplace `creator-kit` | instalat de setup-mac.sh | 13 | 0 | 0 |  |
 | [skill-uri-separate](#skill-uri-separate) | folderul de skill-uri | instalat de setup-mac.sh (~/.claude/skills) | 1 | 0 | 0 |  |
 | [superpowers](#superpowers) | marketplace `superpowers-dev` | instalat de setup-mac.sh | 15 | 0 | 0 | da |
@@ -629,14 +628,6 @@ Sursă: marketplace `creator-kit`.
 | skill | `content-strategy` | ★★ | **strategia de conținut: teme și piloni.** When the user wants to plan content, or asks which topic or piece to prioritize, what to write about, or why posts bring no customers: topic clusters, editorial calendar… |
 | skill | `copy-editing` | ★★ | **corectura textelor de marketing.** When the user wants to edit, tighten, proofread, or refresh existing copy, or asks whether to keep, cut, or change a line in it, without rewriting from scratch. Every ed… |
 | skill | `video` | ★★ | **clipuri cu AI sau din cod, făcute repetabil.** When the user wants to create video with AI tools or code, or asks which approach to use (screen recording, AI avatar, generated, or templated) or how to make videos rep… |
-
-## postiz
-
-Sursă: marketplace `knowledge-work-plugins`, versiunea 2.0.25.
-
-| Tip | Nume | Fitness | La ce folosește |
-|---|---|---|---|
-| skill | `postiz` | ★★★ | **programează și publică postări (cont Postiz).** Postiz is a tool to schedule social media and chat posts to 28+ channels X, LinkedIn, LinkedIn Page, Reddit, Instagram, Facebook Page, Threads, YouTube, Google My Busine… |
 
 ## remotion-skills
 

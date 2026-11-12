@@ -30,7 +30,7 @@ OUT = os.path.join(REPO, "CATALOG-COMPLET.md")
 # Where each plugin comes from, as shown in the table of contents.
 PROFIL = {name: "instalat de setup-mac.sh" for name in (
     "creator-skills", "ecc", "marketing", "design", "brand-voice", "canva", "superpowers",
-    "remotion-skills", "workout-program-designer", "postiz", "marketingskills")}
+    "remotion-skills", "workout-program-designer", "marketingskills")}
 PROFIL["skill-uri-separate"] = "instalat de setup-mac.sh (~/.claude/skills)"
 PROFIL["anthropic-skills"] = "vine cu contul Claude"
 
@@ -82,7 +82,6 @@ RELEVANTA = {
     "skill-uri-separate:shorts": (3, "reels/shorts verticale din video lung, cu subtitrări animate"),
     "workout-program-designer:workout-program-designer": (3, "programe de antrenament personalizate"),
     "remotion-skills:*": (2, "clipuri din cod cu Remotion"),
-    "postiz:*": (3, "programează și publică postări (cont Postiz)"),
     "brand-voice:*": (3, "ghid de ton din materialele existente + verificare"),
     "canva:*": (3, "creează și redimensionează design-uri în Canva (cont Canva)"),
     "design:design-critique": (2, "feedback pe un design (postare, flyer)"),

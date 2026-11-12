@@ -49,7 +49,6 @@ Nu e nevoie să ții minte numele. Scrii în română ce vrei, iar Claude alege 
 | `brand-voice` (plugin) | învață tonul tău din postările existente, scrie ghidul de ton, verifică textele noi | „Uite 20 din postările mele; extrage-mi ghidul de ton.” |
 | `ecc:brand-voice` | profil de stil din textele tale reale, refolosit la postări și mesaje | „Scrie postarea de mâine în stilul meu.” |
 | `marketing:email-sequence` | secvențe de email pentru clienți noi sau abonați | „Secvență de 5 emailuri de bun venit pentru membrii noi.” |
-| `postiz` | programează și publică postările pe rețele, cu statistici (cont Postiz) | „Programează cele 5 postări pe Instagram, câte una pe zi, la 18:00.” |
 | `ecc:article-writing` | articole, ghiduri, newsletter | „Articol de blog despre cât de des să te antrenezi după 40 de ani.” |
 | `social-seo` | descrieri care apar în căutare: prima linie, text pe ecran, 3–5 hashtaguri, alt text; pe YouTube titlu, primele 2 rânduri, capitole, tag-uri | „Scrie descrierea pentru reel-ul cu exerciții de abdomen acasă, pentru Instagram și YouTube Shorts, cu SEO.” |
 | `social` (marketingskills) | ce postezi și în ce format, scripturi de clipuri scurte, calendar | „Ce să postez săptămâna asta ca antrenor personal în Cluj? Dă-mi 5 idei de reels cu script.” |
@@ -102,7 +101,6 @@ Skill-urile Canva cer să-ți conectezi contul Canva la prima folosire.
 | `superpowers` | obra/superpowers | 15 skill-uri de metodă: `brainstorming` (clarifică ideea înainte de lucru), `writing-plans`, `executing-plans`, `verification-before-completion`. La proiectele mai mari, Claude îți pune întâi câteva întrebări, apoi lucrează după un plan. |
 | `remotion-skills` | remotion-dev/skills, legat direct, necopiat | 13 skill-uri oficiale Remotion pentru video din cod |
 | `workout-program-designer` | OneWave-AI/claude-skills (MIT), legat direct | un skill: programe de antrenament personalizate |
-| `postiz` | Postiz, prin catalogul Anthropic | programare și publicare pe 28+ rețele, statistici; cere cont Postiz (cloud plătit sau server propriu gratuit) |
 | `claude-shorts` | AgriciDaniel/claude-shorts (MIT), skill separat în `~/.claude/skills/shorts` | reels și shorts verticale din video lung, cu subtitrări animate; își instalează uneltele Python și Node |
 | skill-uri Anthropic | vin cu contul Claude | PowerPoint, Word, Excel, PDF, documente, cercetare aprofundată, teme vizuale |
 | `airtime` | acest repo | un singur clip devine montaj propus, video YouTube programat și 3-5 reels Instagram programate; explicat mai jos |
