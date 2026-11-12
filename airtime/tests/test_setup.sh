@@ -74,6 +74,47 @@ has "• airtime" "$OUT4" && fail "airtime listed for item 2" || ok "airtime onl
 # 5. The AirTime post-install step is announced.
 printf '%s\n' "$OUT" | grep 'dry-run' | grep -q "airtime: venv" && ok "post-install step shown" || fail "no post-install step in dry-run"
 
+# 5b. The dry-run announces the speed test, and airtime_post calls it.
+printf '%s\n' "$OUT" | grep 'dry-run' | grep -q "test de viteză" && ok "speed test announced in dry-run" || fail "no speed test in dry-run"
+sed -n '/^airtime_post() {/,/^}/p' "$SETUP" | grep -qF 'airtime_speed "$src" "$AH"' \
+  && ok "airtime_post calls airtime_speed" || fail "airtime_post does not call airtime_speed"
+
+# 5c. airtime_speed, extracted from setup-mac.sh and run against a fake check.sh.
+FN="$(sed -n '/^airtime_speed() {/,/^}/p' "$SETUP")"
+if [ -z "$FN" ]; then
+  fail "no airtime_speed() in setup-mac.sh"
+else
+  cat > "$TMP/fake-check.sh" <<'EOF'
+#!/bin/bash
+printf '%s|%s|%s\n' "$*" "${CLAUDE_CONFIG_DIR:-}" "${AIRTIME_HOME:-}" > "$FAKE_ARGS"
+printf '%s\n' "$FAKE_JSON"
+exit 1
+EOF
+  speed_case() {   # $1 scratch name, $2 what the fake check.sh prints; prints airtime_speed's output
+    local d="$TMP/speed-$1"; mkdir -p "$d/plug/scripts" "$d/ahome"
+    cp "$TMP/fake-check.sh" "$d/plug/scripts/check.sh"
+    [ "$1" = done ] && echo '{"model": "small"}' > "$d/ahome/speed.json"
+    FAKE_JSON="$2" FAKE_ARGS="$d/args" CONF="$d/conf" \
+      /bin/bash -c "ok() { echo \"OK \$1\"; }; warn() { echo \"WARN \$1\"; }; $FN
+airtime_speed '$d/plug' '$d/ahome'" 2>&1
+  }
+  J_OK='{"ok": false, "checks": [{"name": "youtube", "ok": false, "anchor": "youtube", "detail": "lipsește"}, {"name": "viteză", "ok": true, "anchor": "unelte", "detail": "model medium, un clip de 20 de minute se transcrie în circa 12.0 minute"}]}'
+  J_FAIL='{"ok": false, "checks": [{"name": "viteză", "ok": false, "anchor": "unelte", "detail": "transcrierea cu modelul small a eșuat"}]}'
+  S="$(speed_case good "$J_OK")"
+  has "OK airtime: test de viteză: model medium" "$S" && ok "speed ok: model reported" || { fail "speed ok"; echo "$S"; }
+  has "WARN" "$S" && fail "speed ok: warns about youtube" || ok "speed ok: other checks ignored"
+  [ "$(cat "$TMP/speed-good/args" 2>/dev/null)" = "--speed --json|$TMP/speed-good/conf|$TMP/speed-good/ahome" ] \
+    && ok "speed: check.sh --speed --json with CONF and AIRTIME_HOME" || fail "speed args: $(cat "$TMP/speed-good/args" 2>/dev/null)"
+  S="$(speed_case bad "$J_FAIL")"
+  has "WARN" "$S" && has "transcrierea cu modelul small a eșuat" "$S" && has "check.sh --speed" "$S" \
+    && ok "speed fails: warning with reason and rerun" || { fail "speed fails"; echo "$S"; }
+  S="$(speed_case garbage "nu e json")"
+  has "WARN" "$S" && ok "speed garbage: warning" || { fail "speed garbage"; echo "$S"; }
+  S="$(speed_case done "$J_OK")"
+  has "OK" "$S" && has "deja" "$S" && [ ! -e "$TMP/speed-done/args" ] \
+    && ok "speed.json present: test skipped" || { fail "speed.json present"; echo "$S"; }
+fi
+
 # 6. --check shows the AirTime block only when the plugin is installed.
 d="$TMP/chk"; mkdir -p "$d/conf/plugins" "$d/app" "$d/ahome"
 CHK="$(CREATOR_KIT_SOURCE="$ROOT" CLAUDE_CONFIG_DIR="$d/conf" CREATOR_KIT_APP_DIR="$d/app" AIRTIME_HOME="$d/ahome" /bin/bash "$SETUP" --check 2>&1)"

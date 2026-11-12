@@ -552,15 +552,42 @@ ensure_chrome() {
   errors=$((errors+1))
 }
 
+# The speed test of check.sh, run once at install so the agent knows from the first
+# clip which Whisper model this Mac can afford (written to $AH/speed.json). Only the
+# "viteză" result is shown: YouTube and the profile are not set up yet at install.
+# A failed test is a warning, not an error: without speed.json the agent picks the
+# model by the profile language.
+airtime_speed() {   # $1 plugin folder, $2 AIRTIME_HOME
+  local src="$1" AH="$2" res
+  if [ -f "$AH/speed.json" ]; then
+    ok "airtime: testul de viteză e făcut deja ($AH/speed.json); îl refaci cu check.sh --speed"
+    return 0
+  fi
+  echo "    Test de viteză: transcriu 30 de secunde de voce cu modelele small și medium. Durează câteva minute."
+  res="$(CLAUDE_CONFIG_DIR="$CONF" AIRTIME_HOME="$AH" bash "$src/scripts/check.sh" --speed --json 2>/dev/null \
+    | python3 -c 'import json, sys
+try:
+    checks = json.loads(sys.stdin.read()).get("checks") or []
+    c = [x for x in checks if x.get("name") == "viteză"][-1]
+    print(("1|" if c.get("ok") else "0|") + (c.get("detail") or ""))
+except Exception:
+    print("0|testul nu a dat niciun rezultat")' 2>/dev/null)"
+  [ -n "$res" ] || res="0|nu pot citi rezultatul (python3)"
+  case "$res" in
+    "1|"*) ok "airtime: test de viteză: ${res#1|}" ;;
+    *) warn "airtime: testul de viteză n-a mers (${res#0|}); AirTime merge și fără el, cu modelul ales după limbă; îl refaci cu check.sh --speed" ;;
+  esac
+}
+
 # AirTime's own part, after its plugin is in: a Python environment for the YouTube
-# libraries, the intro template with its npm packages, and the browser tool.
-# SKIP_AIRTIME_DEPS=1 skips the heavy downloads (venv packages, npm, uv); for tests.
+# libraries, the intro template with its npm packages, the browser tool and the speed test.
+# SKIP_AIRTIME_DEPS=1 skips the heavy downloads (venv packages, npm, uv, Whisper models); for tests.
 airtime_post() {
   local AH="${AIRTIME_HOME:-$HOME/.airtime}" src
   echo
   echo "3. AirTime: mediul de lucru"
   if [ "$DRY" = "yes" ]; then
-    echo "    [dry-run] airtime: venv $AH/venv cu scripts/requirements.txt, șablonul remotion în $AH/remotion + npm install, browser-harness"
+    echo "    [dry-run] airtime: venv $AH/venv cu scripts/requirements.txt, șablonul remotion în $AH/remotion + npm install, browser-harness, test de viteză (check.sh --speed)"
     return 0
   fi
   src="$(plugin_path airtime@creator-kit)"
@@ -606,6 +633,12 @@ airtime_post() {
     ok "browser-harness: instalat"
   else
     warn "browser-harness: n-a mers, vezi $AH/browser-harness.log"; errors=$((errors+1))
+  fi
+  # 4. speed test (downloads the small and medium Whisper models on first run)
+  if [ "${SKIP_AIRTIME_DEPS:-0}" = "1" ]; then
+    warn "test de viteză sărit (SKIP_AIRTIME_DEPS=1)"
+  else
+    airtime_speed "$src" "$AH"
   fi
 }
 
