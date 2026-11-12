@@ -63,6 +63,10 @@ if command -v ffmpeg >/dev/null 2>&1; then
   else
     out "! ffmpeg fără zscale: clipurile iPhone HDR pot ieși cu culori spălate; oprește „Video HDR” în Configurări → Cameră → Formate → AIRTIME-INSTALL.md#probleme"
   fi
+  # Informational: reels get captions from Remotion; only burning captions with ffmpeg needs libass.
+  if ! ffmpeg -hide_banner -filters 2>/dev/null | grep -q ' subtitles '; then
+    out "! ffmpeg fără libass: subtitrările nu se pot arde cu ffmpeg (reels-urile nu sunt afectate) → AIRTIME-INSTALL.md#probleme"
+  fi
 fi
 
 # ---------------------------------------------------------------- venvs
@@ -86,16 +90,37 @@ if [ -n "$SHORTS_ROOT_DIR" ] && [ -f "$SHORTS_ROOT_DIR/SKILL.md" ]; then
 else
   check "shorts" 0 unelte "nu găsesc skill-ul shorts"
 fi
-if [ -n "$SHORTS_PY" ] && [ -x "$SHORTS_PY" ] && "$SHORTS_PY" -c "import faster_whisper" >/dev/null 2>&1; then
-  check "shorts venv" 1 unelte ""
-else
+# A real transcription of 2 s of silence (model tiny), not just an import: on the first
+# real test the import passed while every transcription failed (PyAV 19).
+smoke="$(mktemp -d)"
+if [ -z "$SHORTS_PY" ] || [ ! -x "$SHORTS_PY" ] || ! "$SHORTS_PY" -c "import faster_whisper, numpy" >/dev/null 2>&1; then
   check "shorts venv" 0 unelte "faster_whisper lipsește"
+elif ffmpeg -v error -nostdin -f lavfi -i anullsrc=r=16000:cl=mono -t 2 "$smoke/s.wav" >/dev/null 2>&1 \
+     && "$SHORTS_PY" "$DIR/transcribe.py" "$smoke/s.wav" --output "$smoke/s.json" --model tiny >/dev/null 2>&1 \
+     && [ -s "$smoke/s.json" ]; then
+  check "shorts venv" 1 unelte "transcriere testată"
+else
+  check "shorts venv" 0 unelte "transcrierea de probă a eșuat"
 fi
+rm -rf "$smoke"
 
 if [ -d "$AIRTIME_HOME/remotion/node_modules/remotion" ]; then
   check "remotion" 1 unelte ""
 else
   check "remotion" 0 unelte "lipsesc pachetele Remotion"
+fi
+
+# Chrome Headless Shell: without it the first render downloads it and, on Node 26,
+# can hang forever while unzipping. setup-mac.sh installs it; VERSION marks it done.
+missing_chrome=""
+for rdir in "$AIRTIME_HOME/remotion" "${SHORTS_ROOT_DIR:+$SHORTS_ROOT_DIR/remotion}"; do
+  [ -n "$rdir" ] && [ -d "$rdir/node_modules" ] || continue
+  [ -s "$rdir/node_modules/.remotion/chrome-headless-shell/VERSION" ] || missing_chrome="$missing_chrome ${rdir/#$HOME/~}"
+done
+if [ -z "$missing_chrome" ]; then
+  check "Chrome Headless Shell" 1 unelte ""
+else
+  check "Chrome Headless Shell" 0 unelte "lipsește în$missing_chrome; rulează din nou setup-mac.sh"
 fi
 
 # -------------------------------------------------------------- plugins

@@ -516,6 +516,42 @@ install_creator_skill() {   # $1 skill name: one plugin of the creator-kit
   else install_plugin "$m@creator-kit" "$m"; fi
 }
 
+# Remotion downloads Chrome Headless Shell on the first render. On the first live test
+# (Apple M1, Node 26) its unzip step (extract-zip) hung forever with no error, so the
+# reels never finished. Fetch it now through Remotion's own ensureBrowser(), with a time
+# limit (macOS has no `timeout`; perl's alarm survives exec), and if that stalls unzip the
+# downloaded archive ourselves and write the VERSION that Remotion expects.
+# ensure_chrome PROJECT_DIR LOG LABEL
+ensure_chrome() {
+  local dir="$1" log="$2" label="$3" plat chs zip ver exe z
+  [ -d "$dir/node_modules/@remotion/renderer" ] || return 0
+  case "$(uname -m)" in arm64) plat=mac-arm64 ;; *) plat=mac-x64 ;; esac
+  chs="$dir/node_modules/.remotion/chrome-headless-shell"
+  exe="$chs/$plat/chrome-headless-shell-$plat/chrome-headless-shell"
+  if (cd "$dir" && perl -e 'alarm shift; exec @ARGV' "${CHROME_TIMEOUT:-300}" node -e \
+       'require("@remotion/renderer").ensureBrowser().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); })') \
+       >>"$log" 2>&1 && [ -x "$exe" ]; then
+    ok "$label: Chrome Headless Shell pregătit"; return 0
+  fi
+  # The first complete archive (a download cut by the time limit leaves a partial one).
+  zip=""
+  for z in "$chs"/*.zip; do [ -f "$z" ] && unzip -tq "$z" >/dev/null 2>&1 && { zip="$z"; break; }; done
+  # The expected VERSION depends on the installed Remotion (newer ones add "-remotion-v3").
+  ver="$(cd "$dir" && node -e '
+    const p = require("path"), d = p.join(process.cwd(), "node_modules/@remotion/renderer/dist/browser");
+    const b = require(p.join(d, "BrowserFetcher.js")), g = require(p.join(d, "get-chrome-download-url.js"));
+    process.stdout.write(b.getExpectedVersion
+      ? b.getExpectedVersion({version: null, chromeMode: "headless-shell", platform: process.argv[1]})
+      : g.TESTED_VERSION);' "$plat" 2>>"$log")"
+  if [ -n "$zip" ] && [ -n "$ver" ]; then
+    rm -rf "${chs:?}/$plat" "$chs/download.lock" \
+      && unzip -q "$zip" -d "$chs/$plat" && [ -x "$exe" ] && printf '%s' "$ver" > "$chs/VERSION" && rm -f "$chs"/*.zip \
+      && { ok "$label: Chrome Headless Shell dezarhivat ($ver)"; return 0; }
+  fi
+  warn "$label: Chrome Headless Shell nu s-a putut pregăti, vezi $log; prima randare îl va descărca"
+  errors=$((errors+1))
+}
+
 # AirTime's own part, after its plugin is in: a Python environment for the YouTube
 # libraries, the intro template with its npm packages, and the browser tool.
 # SKIP_AIRTIME_DEPS=1 skips the heavy downloads (venv packages, npm, uv); for tests.
@@ -551,6 +587,7 @@ airtime_post() {
     if [ "${SKIP_AIRTIME_DEPS:-0}" != "1" ]; then
       if ! command -v npm >/dev/null 2>&1; then warn "airtime: lipsește npm (Node.js); rulează din nou comanda după ce îl ai"; errors=$((errors+1))
       elif (cd "$AH/remotion" && npm install --no-audit --no-fund) >"$AH/npm.log" 2>&1; then ok "airtime: pachetele Remotion instalate"
+        ensure_chrome "$AH/remotion" "$AH/npm.log" "airtime"
       else warn "airtime: npm install n-a mers, vezi $AH/npm.log"; errors=$((errors+1)); fi
     fi
   fi
@@ -661,6 +698,8 @@ PY
         rsync -a --delete --exclude='.git' --exclude='node_modules' --exclude='.remotion' --exclude='*.jpeg' \
           "$tmp/shorts/" "$SHORTS_DIR/"
         ok "claude-shorts: skill copiat"
+        # export.sh ends with GNU `paste -sd ','`; BSD paste on macOS needs "-" for stdin.
+        sed -i '' "s/paste -sd ',' |/paste -sd ',' - |/" "$SHORTS_DIR/scripts/export.sh" 2>/dev/null || true
         if [ "${SKIP_SHORTS_DEPS:-0}" = "1" ]; then
           warn "dependențe sărite (SKIP_SHORTS_DEPS=1)"
         elif ! command -v node >/dev/null 2>&1; then
@@ -668,6 +707,7 @@ PY
         else
           echo "    instalez uneltele de transcriere și randare (un minut sau două)..."
           if (cd "$SHORTS_DIR" && bash setup.sh) > "$SHORTS_DIR/setup.log" 2>&1; then ok "claude-shorts: unelte instalate"
+            ensure_chrome "$SHORTS_DIR/remotion" "$SHORTS_DIR/setup.log" "claude-shorts"
             # setup.sh installs mediapipe unpinned; mediapipe 1.x has no mp.solutions, so face
             # tracking fails. AirTime's reels.py then uses a centred 9:16 crop; say so here.
             SPY="$HOME/.video-skill/bin/python3"; [ -x "$SPY" ] || SPY="$HOME/.shorts-skill/bin/python3"

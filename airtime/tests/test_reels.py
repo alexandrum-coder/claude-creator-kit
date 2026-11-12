@@ -84,8 +84,52 @@ def test_step_failure_carries_name_and_stderr(tmp_path):
     assert "boom" in str(e.value)
 
 
+def test_step_timeout_raises_clear_error():
+    with pytest.raises(reels.StepError) as e:
+        reels.run_step("render", [sys.executable, "-c", "import time; time.sleep(5)"], timeout=1)
+    assert e.value.step == "render"
+    assert "blocat" in str(e.value)
+
+
+def test_step_under_timeout_returns_output():
+    assert reels.run_step("demo", [sys.executable, "-c", "print('ok')"], timeout=30).strip() == "ok"
+
+
+def test_transcribe_uses_airtime_script_and_language(tmp_path, monkeypatch):
+    from pathlib import Path
+    calls = []
+
+    def fake(step, args, cwd=None, timeout=None):
+        args = [str(a) for a in args]
+        calls.append(args)
+        Path(args[args.index("--output") + 1]).write_text("{}")
+        return ""
+
+    monkeypatch.setattr(reels, "run_step", fake)
+    reels.transcribe(tmp_path / "v.mp4", tmp_path / "a.json", "small", language="ro")
+    reels.transcribe(tmp_path / "v.mp4", tmp_path / "b.json", "small")
+    assert calls[0][1] == str(Path(reels.__file__).with_name("transcribe.py"))
+    assert calls[0][-2:] == ["--language", "ro"]
+    assert "--language" not in calls[1]
+
+
+def test_build_render_has_timeout(tmp_path, monkeypatch):
+    seen = {}
+    inner = _fake_run_factory([], 3, 3)
+
+    def fake(step, args, cwd=None, timeout=None):
+        if step == "render":
+            seen["timeout"] = timeout
+        return inner(step, args, cwd=cwd, timeout=timeout)
+
+    monkeypatch.setattr(reels, "run_step", fake)
+    curat, tr, ap = _inputs(tmp_path)
+    reels.build(curat, tr, ap, "bold", tmp_path / "out", "horizontal")
+    assert seen.get("timeout") == reels.RENDER_TIMEOUT_PER_REEL * 3
+
+
 def _fake_run_factory(calls, n_render, n_export):
-    def fake(step, args, cwd=None):
+    def fake(step, args, cwd=None, timeout=None):
         args = [str(a) for a in args]
         calls.append((step, args))
         if step == "snap_boundaries":
@@ -172,7 +216,7 @@ def test_cli_missing_input_is_json_error(tmp_path, capsys):
 def test_transcribe_cli_default_model_is_medium(tmp_path, monkeypatch, capsys):
     seen = {}
 
-    def fake(video, out, model):
+    def fake(video, out, model, language=None):
         seen["model"] = model
         return out
 
@@ -185,7 +229,7 @@ def _fake_export_fails_after_writing(calls, n_files, content=b"x"):
     """claude-shorts export.sh on macOS: writes the files, then exits 1 (GNU `paste -sd ','`)."""
     base = _fake_run_factory(calls, 3, 0)
 
-    def fake(step, args, cwd=None):
+    def fake(step, args, cwd=None, timeout=None):
         base(step, args, cwd)
         if step == "export":
             from pathlib import Path
@@ -271,7 +315,7 @@ def test_build_falls_back_to_center_crop_when_reframe_fails(tmp_path, monkeypatc
     calls = []
     base = _fake_run_factory(calls, 3, 3)
 
-    def fake(step, args, cwd=None):
+    def fake(step, args, cwd=None, timeout=None):
         if step == "compute_reframe":
             calls.append((step, [str(a) for a in args]))
             raise reels.StepError("compute_reframe",

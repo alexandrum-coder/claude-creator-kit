@@ -268,3 +268,11 @@ Unealta AirTime trebuie să aibă ✔, cu dependențele și cele două conexiuni
 **11. Clipurile filmate cu iPhone au culori spălate sau diferite de intro**
 - **Cauză:** iPhone-urile noi filmează implicit în HDR (Dolby Vision). AirTime convertește clipul în culori obișnuite (SDR) la montaj, dar conversia nu arată niciodată la fel de bine ca un clip filmat direct în SDR.
 - **Soluție:** pe iPhone, **Configurări** → **Cameră** → **Formate** → oprește **Video HDR**. Clipurile filmate de atunci încolo intră în AirTime fără conversie. **(UNVERIFIED — butoanele pot avea alt nume)**
+
+**12. Reels-urile stau pe loc la prima randare (procesul nu mai avansează)**
+- **Cauză:** la prima randare, Remotion descarcă Chrome Headless Shell. Pe Node 26, dezarhivarea se poate bloca fără nicio eroare (văzut pe un MacBook Air M1 cu macOS Tahoe 26).
+- **Soluție:** rulează din nou comanda din [Instalarea dintr-o comandă](#instalare). Scriptul pregătește Chrome Headless Shell la instalare, cu limită de timp, și îl dezarhivează singur dacă Remotion se blochează. „AirTime check” arată „✔ Chrome Headless Shell” când e gata. Dacă o randare tot se blochează, AirTime o oprește după 10 minute pe reel, cu un mesaj clar. Pentru Node, versiunea LTS (22 sau 24) e cea mai sigură.
+
+**13. „AirTime check” arată „ffmpeg fără libass”**
+- **Cauză:** ffmpeg-ul instalat cu Homebrew nu are filtrul de subtitrări.
+- **Soluție:** nu trebuie făcut nimic pentru reels: subtitrările lor vin din Remotion. Filtrul lipsă contează doar dacă vrei să arzi subtitrările cu ffmpeg în clipul lung. Atunci ai nevoie de un ffmpeg compilat cu libass, freetype și zimg (de exemplu din tap-ul `homebrew-ffmpeg/ffmpeg`, cu aceste opțiuni). Cere ajutorul lui Claude înainte să schimbi ffmpeg-ul.

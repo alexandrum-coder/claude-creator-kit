@@ -39,6 +39,10 @@ import sys
 import unicodedata
 from pathlib import Path
 
+# A reel that renders longer than this is stuck (e.g. Remotion hanging while it unzips
+# Chrome Headless Shell); fail loudly instead of waiting forever.
+RENDER_TIMEOUT_PER_REEL = 600
+
 FILLERS = ("ăă", "ăăă", "îî", "îîî", "mmm", "hmm", "ăm")
 STYLES = ("bold", "bounce", "clean")
 ORIENTATIONS = ("horizontal", "vertical")
@@ -77,10 +81,13 @@ def shorts_python() -> Path:
 
 # ----------------------------------------------------------- subprocess
 
-def run_step(step: str, args: list, cwd=None) -> str:
+def run_step(step: str, args: list, cwd=None, timeout=None) -> str:
     try:
         r = subprocess.run([str(a) for a in args], capture_output=True, text=True,
-                           cwd=str(cwd) if cwd else None)
+                           cwd=str(cwd) if cwd else None, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise StepError(step, f"nu a terminat în {timeout // 60} minute; procesul pare blocat "
+                              "(la randare: Chrome Headless Shell, vezi AIRTIME-INSTALL.md#probleme)")
     except OSError as e:
         raise StepError(step, str(e))
     if r.returncode != 0:
@@ -100,11 +107,15 @@ def probe(path) -> tuple:
 
 # ------------------------------------------------------------ transcribe
 
-def transcribe(video, out, model) -> Path:
+def transcribe(video, out, model, language=None) -> Path:
+    """AirTime's own transcribe.py (no PyAV) with the claude-shorts Python."""
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    run_step("transcribe", [shorts_python(), shorts_root() / "scripts" / "transcribe.py",
-                            video, "--output", out, "--model", model])
+    args = [shorts_python(), Path(__file__).with_name("transcribe.py"),
+            video, "--output", out, "--model", model]
+    if language:
+        args += ["--language", language]
+    run_step("transcribe", args)
     if not out.exists():
         raise StepError("transcribe", f"no output written at {out}")
     return out
@@ -264,7 +275,7 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation, warnin
     run_step("render", ["node", root / "remotion" / "render.mjs",
                         "--segments", snapped, "--reframe", reframe, "--captions", captions,
                         "--clips-dir", clips_dir, "--style", style, "--output-dir", render_dir],
-             cwd=root / "remotion")
+             cwd=root / "remotion", timeout=RENDER_TIMEOUT_PER_REEL * max(1, len(segments)))
     rendered = sorted(render_dir.glob("short_*.mp4"))
     if len(rendered) != len(segments):
         raise StepError("render", f"expected {len(segments)} rendered reels, found {len(rendered)}")
@@ -281,6 +292,7 @@ def main(argv=None) -> int:
     t.add_argument("--video", required=True)
     t.add_argument("--out", required=True)
     t.add_argument("--model", default="medium")
+    t.add_argument("--language", default=None)
     b = sub.add_parser("build")
     b.add_argument("--curat", required=True)
     b.add_argument("--transcript", required=True)
@@ -291,7 +303,7 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     try:
         if args.cmd == "transcribe":
-            res = {"transcript": str(transcribe(args.video, args.out, args.model))}
+            res = {"transcript": str(transcribe(args.video, args.out, args.model, args.language))}
         else:
             warnings = []
             paths = build(args.curat, args.transcript, args.approved, args.style,

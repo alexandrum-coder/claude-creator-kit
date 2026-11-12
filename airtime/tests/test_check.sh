@@ -50,16 +50,17 @@ PYEOF
 #!/bin/bash
 if [ "$1" = "-c" ]; then exit 0; fi
 while [ $# -gt 0 ]; do
-  [ "$1" = "--out" ] && out="$2"
-  [ "$1" = "--model" ] && model="$2"
+  case "$1" in --out|--output) out="$2" ;; --model) model="$2" ;; esac
   shift
 done
 [ -n "${FAKE_FAIL_MODEL:-}" ] && [ "$model" = "$FAKE_FAIL_MODEL" ] && exit 1
-: > "$out"
+echo '{}' > "$out"
 echo '{"transcript": "x"}'
 PYEOF
   chmod +x "$e/bin/say" "$e/bin/node" "$e/ahome/venv/bin/python" "$e/home/.shorts-skill/bin/python3"
   : > "$e/shorts/SKILL.md"
+  mkdir -p "$e/ahome/remotion/node_modules/.remotion/chrome-headless-shell"
+  echo "144.0.7559.20" > "$e/ahome/remotion/node_modules/.remotion/chrome-headless-shell/VERSION"
   : > "$e/plug/skills/social-seo/SKILL.md"
   cat > "$e/cfg/plugins/installed_plugins.json" <<JEOF
 {"version":2,"plugins":{
@@ -85,6 +86,7 @@ run_check "$E" --quick
 [ "$RC" = 0 ] && ok "all pass: exit 0" || { fail "all pass: exit $RC"; echo "$OUT"; }
 case "$OUT" in *"✘"*) fail "all pass: unexpected ✘"; echo "$OUT" ;; *) ok "all pass: no ✘" ;; esac
 case "$OUT" in *"! ffmpeg fără zscale"*"Video HDR"*) ok "zscale info line (!, not ✘)" ;; *) fail "zscale info line missing" ;; esac
+case "$OUT" in *"! ffmpeg fără libass"*) ok "libass info line (!, not ✘)" ;; *) fail "libass info line missing" ;; esac
 case "$OUT" in *"Instagram: se verifică în conversație"*) ok "instagram info line" ;; *) fail "instagram info line missing" ;; esac
 [ ! -e "$E/ahome/speed.json" ] && ok "quick writes no speed.json" || fail "quick wrote speed.json"
 echo "$OUT" | grep -q 's[â]nt' && fail "forbidden spelling in output"
@@ -132,6 +134,21 @@ rm -rf "$E/ahome/remotion/node_modules"
 run_check "$E" --quick
 case "$OUT" in *"✘ shorts venv"*"#unelte"*) ok "shorts venv ✘" ;; *) fail "shorts venv"; echo "$OUT" ;; esac
 case "$OUT" in *"✘ remotion"*"#unelte"*) ok "remotion ✘" ;; *) fail "remotion"; echo "$OUT" ;; esac
+
+# 5b. The import works but a real transcription fails (PyAV 19 on the first live test).
+E="$(make_env txfail)"
+FAKE_FAIL_MODEL=tiny run_check "$E" --quick
+case "$OUT" in *"✘ shorts venv: transcrierea de probă a eșuat"*) ok "transcription smoke test ✘" ;; *) fail "transcription smoke test"; echo "$OUT" ;; esac
+run_check "$E" --quick
+case "$OUT" in *"✔ shorts venv (transcriere testată)"*) ok "transcription smoke test ✔" ;; *) fail "transcription ✔ line"; echo "$OUT" ;; esac
+
+# 5c. Chrome Headless Shell missing in the AirTime and shorts Remotion projects.
+E="$(make_env nochrome)"
+rm -rf "$E/ahome/remotion/node_modules/.remotion"
+mkdir -p "$E/shorts/remotion/node_modules"
+run_check "$E" --quick
+[ "$RC" = 1 ] && ok "no chrome: exit 1" || fail "no chrome: exit $RC"
+case "$OUT" in *"✘ Chrome Headless Shell"*"ahome/remotion"*"shorts/remotion"*"#unelte"*) ok "no chrome: ✘ names both" ;; *) fail "no chrome line"; echo "$OUT" ;; esac
 
 # 6. --json: exactly one object, no ✔/✘ lines.
 E="$(make_env json)"
