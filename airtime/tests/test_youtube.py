@@ -327,3 +327,67 @@ def test_whoami_api_error_is_json_not_exit_3(capsys, monkeypatch):
     monkeypatch.setattr(y, "_service", lambda profile: (_ for _ in ()).throw(y.NotConnected()))
     code, out = run_cli(["whoami"], capsys)
     assert code == 3
+
+
+class _Creds:
+    def to_json(self):
+        return '{"token": "t"}'
+
+
+def _fake_flow(monkeypatch, fail):
+    import google_auth_oauthlib.flow as gflow
+
+    class Flow:
+        @classmethod
+        def from_client_secrets_file(cls, path, scopes):
+            assert Path(path).exists()
+            return cls()
+
+        def run_local_server(self, port=0):
+            if fail:
+                raise RuntimeError("browser closed")
+            return _Creds()
+
+    monkeypatch.setattr(gflow, "InstalledAppFlow", Flow)
+
+
+def test_auth_failed_login_keeps_client_in_downloads(tmp_path, capsys, monkeypatch):
+    """A first login that fails (browser closed, unverified-app screen) must leave the client file in
+    Downloads, so connect-youtube.sh finds it again on the next run."""
+    _fake_flow(monkeypatch, fail=True)
+    src = tmp_path / "Downloads" / "client_secret_1.json"
+    src.parent.mkdir()
+    src.write_text('{"installed": {}}')
+    with pytest.raises(RuntimeError):
+        y.main(["auth", "--client", str(src)])
+    assert src.exists()
+    assert not y.cfg.token_path("principal").exists()
+
+
+def test_auth_success_moves_client_after_token(tmp_path, capsys, monkeypatch):
+    import os
+    import stat
+
+    _fake_flow(monkeypatch, fail=False)
+    monkeypatch.setattr(y, "_whoami", lambda profile: y._emit({"channel": "Canal"}))
+    src = tmp_path / "Downloads" / "client_secret_1.json"
+    src.parent.mkdir()
+    src.write_text('{"installed": {}}')
+    code, out = run_cli(["auth", "--client", str(src)], capsys)
+    assert code == 0 and out == {"channel": "Canal"}
+    assert not src.exists()
+    dest = y.cfg.client_path()
+    assert dest.read_text() == '{"installed": {}}'
+    assert stat.S_IMODE(os.stat(dest).st_mode) == 0o600
+    assert y.cfg.token_path("principal").read_text() == '{"token": "t"}'
+
+
+def test_auth_rerun_with_client_already_in_place(tmp_path, capsys, monkeypatch):
+    _fake_flow(monkeypatch, fail=False)
+    monkeypatch.setattr(y, "_whoami", lambda profile: y._emit({"channel": "Canal"}))
+    dest = y.cfg.client_path()
+    dest.parent.mkdir(parents=True)
+    dest.write_text('{"installed": {}}')
+    code, out = run_cli(["auth", "--client", str(dest)], capsys)
+    assert code == 0
+    assert dest.exists()

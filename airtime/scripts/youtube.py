@@ -10,7 +10,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -229,11 +228,16 @@ def _cmd_auth(args) -> None:
         _emit({"error": "fișierul client nu există"}, 4)
     dest = cfg.client_path()
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(src), str(dest))
+    same = dest.exists() and src.resolve() == dest.resolve()
+    if not same:
+        # copy, not move: if the login fails, the file stays in Downloads for the next run
+        _write_secret(dest, src.read_text(encoding="utf-8"))
     os.chmod(dest, 0o600)
     flow = InstalledAppFlow.from_client_secrets_file(str(dest), SCOPES)
     creds = flow.run_local_server(port=0)
     _write_secret(cfg.token_path(args.profile), creds.to_json())
+    if not same:
+        src.unlink()
     _whoami(args.profile)
 
 
