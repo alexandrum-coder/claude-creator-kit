@@ -141,7 +141,7 @@ Conectarea la YouTube și Instagram se face o singură dată, cu „AirTime cone
 | `brandkit` | board de brand: logo, paletă, fonturi, identitate |
 | `theme-factory` | 10 teme vizuale pentru slide-uri și documente |
 | `prompt-master` | prompturi optimizate pentru alte unelte AI (imagine, video, chat) |
-| `prompt-agent` | la prima cerere de lucru din sesiune îți arată promptul optimizat (cu prompt-master) și pornește doar după ce aprobi; pentru o cerere nouă scrii `/prompt-agent <cerere>` |
+| `prompt-flow` | la prima cerere de lucru din sesiune îți arată promptul optimizat (cu prompt-master) și pornește doar după ce aprobi; pentru o cerere nouă scrii `/prompt-flow <cerere>` |
 | `notebooklm` | lucru cu Google NotebookLM: surse, rezumate, podcast audio |
 | `personal-assistant` | agent: alege și pornește unealta potrivită după ce aprobi promptul |
 | `plan-taskmanager` | plan de execuție pentru proiecte cu mulți pași |

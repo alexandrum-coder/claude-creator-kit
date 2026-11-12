@@ -1,6 +1,6 @@
 ---
 name: prompt-agent
-description: Optimizează o cerere brută de lucru într-un prompt final, cu prompt-master și, dacă e instalat, ecc:prompt-optimizer. Întoarce promptul, ținta, ce s-a schimbat și cel mult 3 întrebări. Nu execută cererea. Chemat de skill-ul prompt-agent.
+description: Optimizează o cerere brută de lucru într-un prompt final, cu prompt-master și, dacă e instalat, ecc:prompt-optimizer. Întoarce promptul, ținta, ce s-a schimbat și cel mult 3 întrebări. Nu execută cererea. Chemat de skill-ul prompt-flow.
 tools: Skill, Read, Grep, Glob
 ---
 

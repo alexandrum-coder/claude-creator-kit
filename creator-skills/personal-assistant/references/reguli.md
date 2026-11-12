@@ -88,7 +88,7 @@ Cum le folosești:
 |---|---|
 | cel mult 2 runde de întrebări, o singură predare (ACȚIUNE sau GATA) | A, fără să întrebi |
 | 3 sau mai multe runde probabile, sau o discuție deschisă (strategie, brainstorming lung) | ÎNTREBARE cu recomandarea B |
-| Doru a ales deja A sau B în conversația asta | ce a ales, fără să mai întrebi |
+| Utilizatorul a ales deja A sau B în conversația asta | ce a ales, fără să mai întrebi |
 
 Ce pui în motivare:
 - La A, fiecare rundă înseamnă o tură a firului principal și o reluare a subagentului.
