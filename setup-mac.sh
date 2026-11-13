@@ -12,6 +12,7 @@
 #   --check            show what is installed, change nothing
 #   --dry-run          print the commands, change nothing
 #   --fara-unelte      do not install Homebrew/Node/ffmpeg/uv/yt-dlp/the Claude app
+#   --fara-test-viteza do not run AirTime's speed test at install (a few minutes)
 #
 # No duplicates, ever. Before installing, the script scans this Mac's Claude
 # setup (plugins, loose skills, agents, account and Cowork plugins, MCP servers)
@@ -29,12 +30,13 @@
 # ============================================================================
 set -uo pipefail
 
-DRY="no"; CHECK="no"; TOOLS="yes"; MODE=""; PICK=""
+DRY="no"; CHECK="no"; TOOLS="yes"; MODE=""; PICK=""; SPEED_TEST="yes"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY="yes"; shift ;;
     --check) CHECK="yes"; shift ;;
     --fara-unelte) TOOLS="no"; shift ;;
+    --fara-test-viteza) SPEED_TEST="no"; shift ;;
     --toate) MODE="toate"; shift ;;
     --doar) MODE="doar"; PICK="${2:-}"; shift 2 ;;
     -h|--help) echo "Vezi https://github.com/alexandrum-coder/claude-creator-kit#readme"; exit 0 ;;
@@ -573,9 +575,11 @@ try:
 except Exception:
     print("0|testul nu a dat niciun rezultat")' 2>/dev/null)"
   [ -n "$res" ] || res="0|nu pot citi rezultatul (python3)"
+  # check.sh's own wording points at its tool lines, which are not shown here.
+  res="${res//uneltele de mai sus/unelte care lipsesc}"
   case "$res" in
     "1|"*) ok "airtime: test de viteză: ${res#1|}" ;;
-    *) warn "airtime: testul de viteză n-a mers (${res#0|}); AirTime merge și fără el, cu modelul ales după limbă; îl refaci cu check.sh --speed" ;;
+    *) warn "airtime: testul de viteză n-a mers (${res#0|}); AirTime merge și fără el, cu modelul ales după limbă; check.sh --speed arată ce lipsește și refă testul" ;;
   esac
 }
 
@@ -583,11 +587,13 @@ except Exception:
 # libraries, the intro template with its npm packages, the browser tool and the speed test.
 # SKIP_AIRTIME_DEPS=1 skips the heavy downloads (venv packages, npm, uv, Whisper models); for tests.
 airtime_post() {
-  local AH="${AIRTIME_HOME:-$HOME/.airtime}" src
+  local AH="${AIRTIME_HOME:-$HOME/.airtime}" src speed_note
   echo
   echo "3. AirTime: mediul de lucru"
   if [ "$DRY" = "yes" ]; then
-    echo "    [dry-run] airtime: venv $AH/venv cu scripts/requirements.txt, șablonul remotion în $AH/remotion + npm install, browser-harness, test de viteză (check.sh --speed)"
+    if [ "$SPEED_TEST" = "no" ]; then speed_note="fără test de viteză (--fara-test-viteza)"
+    else speed_note="test de viteză (check.sh --speed)"; fi
+    echo "    [dry-run] airtime: venv $AH/venv cu scripts/requirements.txt, șablonul remotion în $AH/remotion + npm install, browser-harness, $speed_note"
     return 0
   fi
   src="$(plugin_path airtime@creator-kit)"
@@ -635,7 +641,9 @@ airtime_post() {
     warn "browser-harness: n-a mers, vezi $AH/browser-harness.log"; errors=$((errors+1))
   fi
   # 4. speed test (downloads the small and medium Whisper models on first run)
-  if [ "${SKIP_AIRTIME_DEPS:-0}" = "1" ]; then
+  if [ "$SPEED_TEST" = "no" ]; then
+    ok "airtime: test de viteză sărit (--fara-test-viteza); îl faci oricând cu check.sh --speed"
+  elif [ "${SKIP_AIRTIME_DEPS:-0}" = "1" ]; then
     warn "test de viteză sărit (SKIP_AIRTIME_DEPS=1)"
   else
     airtime_speed "$src" "$AH"

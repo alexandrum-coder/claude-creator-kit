@@ -79,6 +79,14 @@ printf '%s\n' "$OUT" | grep 'dry-run' | grep -q "test de viteză" && ok "speed t
 sed -n '/^airtime_post() {/,/^}/p' "$SETUP" | grep -qF 'airtime_speed "$src" "$AH"' \
   && ok "airtime_post calls airtime_speed" || fail "airtime_post does not call airtime_speed"
 
+# 5d. --fara-test-viteza is accepted and skips the speed test.
+OUT5="$(run_setup nospeed --doar "$N" --fara-test-viteza)"
+has "Opțiune necunoscută" "$OUT5" && fail "--fara-test-viteza rejected" || ok "--fara-test-viteza accepted"
+printf '%s\n' "$OUT5" | grep 'dry-run' | grep -q "fără test de viteză" && ok "--fara-test-viteza: dry-run says skipped" || fail "--fara-test-viteza: no skip in dry-run"
+printf '%s\n' "$OUT5" | grep -q "test de viteză (check.sh --speed)" && fail "--fara-test-viteza: speed test still announced" || ok "--fara-test-viteza: speed test not announced"
+sed -n '/^airtime_post() {/,/^}/p' "$SETUP" | grep -qF '"$SPEED_TEST" = "no"' \
+  && ok "airtime_post honours SPEED_TEST" || fail "airtime_post ignores SPEED_TEST"
+
 # 5c. airtime_speed, extracted from setup-mac.sh and run against a fake check.sh.
 FN="$(sed -n '/^airtime_speed() {/,/^}/p' "$SETUP")"
 if [ -z "$FN" ]; then
@@ -108,6 +116,10 @@ airtime_speed '$d/plug' '$d/ahome'" 2>&1
   S="$(speed_case bad "$J_FAIL")"
   has "WARN" "$S" && has "transcrierea cu modelul small a eșuat" "$S" && has "check.sh --speed" "$S" \
     && ok "speed fails: warning with reason and rerun" || { fail "speed fails"; echo "$S"; }
+  J_TOOLS='{"ok": false, "checks": [{"name": "viteză", "ok": false, "anchor": "unelte", "detail": "testul de viteză cere uneltele de mai sus"}]}'
+  S="$(speed_case tools "$J_TOOLS")"
+  has "WARN" "$S" && ! has "de mai sus" "$S" && has "check.sh" "$S" \
+    && ok "speed tools missing: no 'de mai sus', points to check.sh" || { fail "speed tools missing"; echo "$S"; }
   S="$(speed_case garbage "nu e json")"
   has "WARN" "$S" && ok "speed garbage: warning" || { fail "speed garbage"; echo "$S"; }
   S="$(speed_case done "$J_OK")"

@@ -54,6 +54,8 @@ Fiecare rând trebuie să se termine cu ✔. Un `!` galben e un avertisment. Un 
 
 Dacă nu vrei ca scriptul să instaleze Homebrew, Node sau ffmpeg, descarcă-l și rulează-l cu `--fara-unelte`.
 
+La AirTime, instalarea face la final un test de viteză de câteva minute, ca să aleagă modelul de transcriere potrivit Mac-ului. Îl sari cu `--fara-test-viteza` și îl faci mai târziu cu „AirTime check”.
+
 ### Ce instalează
 
 | Plugin | Pentru ce |
