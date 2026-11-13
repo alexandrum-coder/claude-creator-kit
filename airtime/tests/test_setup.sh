@@ -87,6 +87,30 @@ printf '%s\n' "$OUT5" | grep -q "test de viteză (check.sh --speed)" && fail "--
 sed -n '/^airtime_post() {/,/^}/p' "$SETUP" | grep -qF '"$SPEED_TEST" = "no"' \
   && ok "airtime_post honours SPEED_TEST" || fail "airtime_post ignores SPEED_TEST"
 
+# 5e. airtime_post for real (no dry-run), extracted and run with stubs: which branch
+# reaches the speed test. Nothing is installed: pip and browser-harness are stubs,
+# the fake plugin has no remotion folder.
+POST="$(sed -n '/^airtime_post() {/,/^}/p' "$SETUP")"
+post_case() {   # $1 scratch name, $2 SPEED_TEST, $3 SKIP_AIRTIME_DEPS; prints airtime_post's output
+  local d="$TMP/post-$1"; mkdir -p "$d/plug/scripts" "$d/ahome/venv/bin" "$d/bin"
+  printf '#!/bin/sh\nexit 0\n' > "$d/ahome/venv/bin/python"; chmod +x "$d/ahome/venv/bin/python"
+  printf '#!/bin/sh\nexit 0\n' > "$d/bin/browser-harness"; chmod +x "$d/bin/browser-harness"
+  : > "$d/plug/scripts/requirements.txt"
+  PATH="$d/bin:/usr/bin:/bin" AIRTIME_HOME="$d/ahome" SKIP_AIRTIME_DEPS="$3" /bin/bash -c "
+ok() { echo \"OK \$1\"; }; warn() { echo \"WARN \$1\"; }
+plugin_path() { echo '$d/plug'; }
+airtime_speed() { echo \"SPEED \$1 \$2\"; }
+DRY=no; SPEED_TEST=$2; errors=0
+$POST
+airtime_post" 2>&1
+}
+P="$(post_case run yes 0)"
+has "SPEED $TMP/post-run/plug $TMP/post-run/ahome" "$P" && ok "post: speed test runs by default" || { fail "post: speed test not run"; echo "$P"; }
+P="$(post_case nospeed no 0)"
+! has "SPEED " "$P" && has "sărit (--fara-test-viteza)" "$P" && ok "post: --fara-test-viteza skips the speed test" || { fail "post: --fara-test-viteza"; echo "$P"; }
+P="$(post_case skipdeps yes 1)"
+! has "SPEED " "$P" && has "test de viteză sărit (SKIP_AIRTIME_DEPS=1)" "$P" && ok "post: SKIP_AIRTIME_DEPS=1 skips the speed test" || { fail "post: SKIP_AIRTIME_DEPS"; echo "$P"; }
+
 # 5c. airtime_speed, extracted from setup-mac.sh and run against a fake check.sh.
 FN="$(sed -n '/^airtime_speed() {/,/^}/p' "$SETUP")"
 if [ -z "$FN" ]; then
