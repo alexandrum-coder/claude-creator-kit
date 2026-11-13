@@ -559,6 +559,34 @@ def test_cli_apply_fara_jl(tmp_path, monkeypatch):
     assert _trims(graph, "a") == [(0.0, 3.85), (4.85, 10.0)]
 
 
+def test_apply_jcut_fade_rule_counts_the_sound_piece(tmp_path, monkeypatch):
+    # 50 ms of picture after a J-cut join carries 200 ms of sound: that sound piece gets its fades
+    cuts = [{"id": 1, "start": 4.0, "end": 5.0}, {"id": 2, "start": 5.05, "end": 6.0}]
+    res, graph = _apply_graph(tmp_path, monkeypatch, cuts)
+    assert _trims(graph, "a") == [(0.0, 3.85), (4.85, 5.05), (6.0, 10.0)]
+    a1 = [p for p in graph.split(";") if p.endswith("[a1]")][0]
+    assert "afade=t=in:st=0:d=0.030" in a1 and "afade=t=out:st=0.170000:d=0.030" in a1
+
+
+def test_apply_jcut_measures_the_cut_after_snapping(tmp_path, monkeypatch):
+    # approved cut 0.32 s; snapped to the silence inside it, only 0.19 s is left: no J-cut
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    monkeypatch.setattr(silences, "has_audio", lambda v: True)
+    monkeypatch.setattr(silences, "read_audio",
+                        lambda v, rate=8000: _samples(rate, 10.0, [(4.05, 4.07), (4.23, 4.25)]))
+    res = silences.apply_cuts("in.mp4", [{"id": 1, "start": 4.0, "end": 4.32}], str(tmp_path / "o.mp4"))
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert _trims(graph, "v") == [(0.0, 4.055), (4.245, 10.0)]
+    assert _trims(graph, "a") == _trims(graph, "v")
+
+
+def test_apply_jcut_needs_the_previous_piece_longer_than_210ms(tmp_path, monkeypatch):
+    cuts = [{"id": 1, "start": 2.0, "end": 3.0}, {"id": 2, "start": 3.21, "end": 5.0}]   # piece of 0.21 s
+    _, graph = _apply_graph(tmp_path, monkeypatch, cuts)
+    assert _trims(graph, "v") == [(0.0, 2.0), (3.0, 3.21), (5.0, 10.0)]
+    assert _trims(graph, "a") == [(0.0, 1.85), (2.85, 3.21), (5.0, 10.0)]
+
+
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="no ffmpeg")
 def test_apply_jcut_keeps_audio_and_video_the_same_length(tmp_path):
     clip = tmp_path / "in.mp4"
