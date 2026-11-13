@@ -390,3 +390,79 @@ def test_cli_apply_ffmpeg_failure_is_json_error(tmp_path, monkeypatch, capsys):
     assert rc == 1
     err = json.loads(out.out)["error"]
     assert "No such filter" in err and len(err) < 2000 and "Traceback" not in out.err
+
+
+# ---- 4a: RMS snap of cut edges (inward only) and 30 ms fades at joins
+
+def _samples(rate, duration, quiet):
+    """Loud square wave (amplitude 8000) with silent stretches [(a, b), ...]."""
+    from array import array
+    n = int(rate * duration)
+    s = array("h", [8000 if (i // 4) % 2 else -8000 for i in range(n)])
+    for a, b in quiet:
+        for i in range(int(round(a * rate)), min(n, int(round(b * rate)))):
+            s[i] = 0
+    return s
+
+
+def test_snap_moves_edges_inward_to_silence():
+    s = _samples(8000, 4.0, [(1.08, 1.10), (1.90, 1.92)])
+    cut = {"id": 1, "start": 1.0, "end": 2.0, "reason": "pauza", "text": ""}
+    out = silences.snap_cuts([cut], s, 8000, 4.0)[0]
+    assert 1.08 <= out["start"] <= 1.10
+    assert 1.90 <= out["end"] <= 1.92
+    assert out["id"] == 1 and out["reason"] == "pauza"
+    assert cut["start"] == 1.0 and cut["end"] == 2.0   # input untouched
+
+
+def test_snap_never_grows_the_cut():
+    s = _samples(8000, 4.0, [(0.90, 0.99), (2.01, 2.10)])   # silence only outside the cut
+    out = silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]
+    assert out["start"] == 1.0 and out["end"] == 2.0
+
+
+def test_snap_searches_150ms_only():
+    s = _samples(8000, 4.0, [(1.30, 1.32), (1.68, 1.70)])   # silence too far from both edges
+    out = silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]
+    assert out["start"] == 1.0 and out["end"] == 2.0
+
+
+def test_snap_skips_short_cuts_and_clip_edges():
+    s = _samples(8000, 4.0, [(0.05, 0.07), (0.40, 0.42), (1.05, 1.07), (3.55, 3.57), (3.90, 3.95)])
+    cuts = [{"id": 1, "start": 0.0, "end": 0.5}, {"id": 2, "start": 1.0, "end": 1.2},
+            {"id": 3, "start": 3.5, "end": 4.0}]
+    out = silences.snap_cuts(cuts, s, 8000, 4.0)
+    assert out[0]["start"] == 0.0 and 0.40 <= out[0]["end"] <= 0.42
+    assert out[1] == cuts[1]          # 0.2 s: untouched
+    assert 3.55 <= out[2]["start"] <= 3.57 and out[2]["end"] == 4.0
+
+
+def test_apply_fades_audio_at_joins_only(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    monkeypatch.setattr(silences, "has_audio", lambda v: True)
+    monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
+    res = silences.apply_cuts("in.mp4", [{"id": 1, "start": 4.0, "end": 5.0, "reason": "p", "text": ""}],
+                              str(tmp_path / "o.mp4"))
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1].split(";")
+    a0 = [p for p in graph if p.startswith("[0:a]") and p.endswith("[a0]")][0]
+    a1 = [p for p in graph if p.startswith("[0:a]") and p.endswith("[a1]")][0]
+    assert "afade=t=out:st=3.970000:d=0.030" in a0 and "afade=t=in" not in a0
+    assert "afade=t=in:st=0:d=0.030" in a1 and "afade=t=out" not in a1
+    assert res["keep"] == [[0.0, 4.0], [5.0, 10.0]]
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="no ffmpeg")
+def test_apply_snaps_to_real_silence(tmp_path):
+    clip = tmp_path / "in.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=25:duration=6",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=6",
+         "-af", "volume=enable='between(t,2.08,2.95)':volume=0",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(clip)],
+        check=True,
+    )
+    res = silences.apply_cuts(str(clip), [{"id": 1, "start": 2.0, "end": 3.0, "reason": "p", "text": ""}],
+                              str(tmp_path / "o.mp4"))
+    (_, b), (c, _) = res["keep"]
+    assert 2.06 <= b <= 2.13
+    assert 2.89 <= c <= 2.97

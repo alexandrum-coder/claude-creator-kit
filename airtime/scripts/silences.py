@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import math
 import re
+from array import array
 import subprocess
 import sys
 import unicodedata
@@ -24,6 +26,14 @@ RETAKE_WORDS = 3
 HEAD_MARGIN = 0.5
 TAIL_MARGIN = 1.0
 EPS = 1e-6
+# apply: each edge of an approved cut moves inward (never outward) to the quietest
+# 10 ms window within 150 ms, if that window is at least twice as quiet as the edge.
+SNAP_RATE = 8000
+SNAP_WINDOW = 0.15
+SNAP_FRAME = 0.01
+SNAP_MIN_CUT = 0.3
+SNAP_RATIO = 0.5
+FADE = 0.03   # fade-out / fade-in at each join, so a cut never clicks
 
 
 # ---------------------------------------------------------------- words
@@ -303,18 +313,72 @@ def freeze_edges(video: str, duration: float) -> list[tuple[float, float]]:
     return parse_freeze_edges(r.stderr, duration)
 
 
+def read_audio(video: str, rate: int = SNAP_RATE) -> array:
+    """The whole audio track as mono signed 16-bit samples at `rate` Hz."""
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(video), "-map", "0:a:0", "-ac", "1",
+                        "-ar", str(rate), "-f", "s16le", "-"], capture_output=True, check=True)
+    samples = array("h")
+    samples.frombytes(r.stdout[: len(r.stdout) // 2 * 2])
+    if sys.byteorder == "big":
+        samples.byteswap()
+    return samples
+
+
+def _rms(samples: array, rate: int, t: float) -> float:
+    i, j = int(round(t * rate)), int(round((t + SNAP_FRAME) * rate))
+    chunk = samples[max(0, i):max(0, j)]
+    return math.sqrt(sum(x * x for x in chunk) / len(chunk)) if chunk else 0.0
+
+
+def _snap_edge(samples: array, rate: int, edge: float, limit: float, inward: int) -> float:
+    """Quietest 10 ms window between `edge` and `limit` (inward = +1 from a start, -1 from an end)."""
+    n = int((min(SNAP_WINDOW, abs(limit - edge)) - SNAP_FRAME) / SNAP_FRAME + EPS) + 1
+    if n < 2:
+        return edge
+    starts = [edge + k * SNAP_FRAME if inward > 0 else edge - (k + 1) * SNAP_FRAME for k in range(n)]
+    levels = [_rms(samples, rate, s) for s in starts]
+    best = min(range(n), key=lambda k: (levels[k], k))   # ties: the window nearest the edge
+    if best == 0 or levels[best] > levels[0] * SNAP_RATIO:
+        return edge
+    return round(starts[best] + SNAP_FRAME / 2, 6)
+
+
+def snap_cuts(cuts: list[dict], samples: array, rate: int, duration: float) -> list[dict]:
+    """Copies of the cuts with their edges moved inward to nearby silence. A cut only shrinks."""
+    out = []
+    for c in cuts:
+        c = dict(c)
+        start, end = float(c["start"]), float(c["end"])
+        if end - start >= SNAP_MIN_CUT:
+            mid = (start + end) / 2
+            if start > EPS:
+                c["start"] = _snap_edge(samples, rate, start, mid, +1)
+            if end < duration - EPS:
+                c["end"] = _snap_edge(samples, rate, end, mid, -1)
+        out.append(c)
+    return out
+
+
 def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
     duration = probe_duration(video)
+    audio = has_audio(video)
+    if audio and cuts:
+        cuts = snap_cuts(cuts, read_audio(video), SNAP_RATE, duration)
     keep = keep_intervals(duration, cuts)
     if not keep:
         raise SystemExit("nothing left after cuts")
-    audio = has_audio(video)
     parts, labels = [], ""
     for i, (a, b) in enumerate(keep):
         parts.append("[0:v]trim=start=%.6f:end=%.6f,setpts=PTS-STARTPTS[v%d]" % (a, b, i))
         labels += "[v%d]" % i
         if audio:
-            parts.append("[0:a]atrim=start=%.6f:end=%.6f,asetpts=PTS-STARTPTS[a%d]" % (a, b, i))
+            fades = ""
+            if b - a > 2 * FADE:
+                if i > 0:
+                    fades += ",afade=t=in:st=0:d=%.3f" % FADE
+                if i < len(keep) - 1:
+                    fades += ",afade=t=out:st=%.6f:d=%.3f" % (b - a - FADE, FADE)
+            parts.append("[0:a]atrim=start=%.6f:end=%.6f,asetpts=PTS-STARTPTS%s[a%d]" % (a, b, fades, i))
             labels += "[a%d]" % i
     tonemap = tonemap_filter(color_transfer(video))
     warnings = []
