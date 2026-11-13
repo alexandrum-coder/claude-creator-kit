@@ -138,3 +138,39 @@ def test_agent_model_small_when_python_fails(tmp_path):
     os.unlink(Path(env["AIRTIME_HOME"], "venv", "bin", "python"))
     block = AGENT_PY + bash_block(AGENT, "MODEL=$(")
     assert run_block(block, env, 'echo "$MODEL"') == "small"
+
+
+def _section(text: str, heading: str) -> str:
+    m = re.search(r"^## %s\n(.*?)(?=^## |\Z)" % re.escape(heading), text, flags=re.S | re.M)
+    assert m, "no section %r in SKILL.md" % heading
+    return m.group(1)
+
+
+NO_PUBLISH = ["fără publicare", "no publish", "AirTime local", "clip local"]
+ONLY_EDIT = ["doar clip", "doar montaj", "Final Edit"]
+
+
+def test_skill_description_triggers_no_publish_modes():
+    front = SKILL.read_text(encoding="utf-8").split("---")[1]
+    assert "fără publicare" in front
+    assert "doar montaj" in front
+    assert "în <dosar>" in front
+
+
+def test_skill_section_lists_both_modes_and_phrases():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Moduri fără publicare")
+    for phrase in NO_PUBLISH + ONLY_EDIT:
+        assert "„%s”" % phrase in sec, phrase
+    assert "**Tot gata**" in sec and "**Doar montaj**" in sec
+    assert "raport.md" in sec
+    assert "root=" in sec
+
+
+def test_skill_steps_0_and_1_follow_the_mode():
+    flow = _section(SKILL.read_text(encoding="utf-8"), "Fluxul unei rulări (pașii 0-9)")
+    step0 = flow.split("### 1.")[0]
+    step1 = flow.split("### 1.")[1].split("### 2.")[0]
+    assert "Moduri fără publicare" in step0
+    assert "`mod`" in step1
+    assert "fără `calendar.json`" in step1
+    assert "new_run_dir(Path(clip), date.today(), root=" in step1

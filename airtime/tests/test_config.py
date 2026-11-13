@@ -88,3 +88,26 @@ def test_whisper_model_broken_profile_falls_back_to_ro():
     c.save_profile("stricat", {})
     (c.home() / "profiles" / "stricat.json").write_text("{not json")
     assert c.whisper_model("stricat") == "medium"
+
+
+def test_run_dir_in_chosen_folder_created_with_suffix(tmp_path):
+    root = tmp_path / "ales" / "adanc"
+    d1 = c.new_run_dir(Path("/x/Clip Nou.mp4"), date(2026, 11, 10), root=root)
+    d2 = c.new_run_dir(Path("/x/Clip Nou.mp4"), date(2026, 11, 10), root=str(root))
+    assert d1 == root / "2026-11-10-clip-nou"
+    assert d2 == root / "2026-11-10-clip-nou-2"
+    assert d1.is_dir() and d2.is_dir()
+    assert not c.runs_root().exists()
+
+
+def test_run_dir_tilde_and_short_path_are_in_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path / "eu"))
+    d1 = c.new_run_dir(Path("/x/a.mp4"), date(2026, 11, 10), root="~/Desktop/X")
+    d2 = c.new_run_dir(Path("/x/a.mp4"), date(2026, 11, 10), root="Clipuri")
+    assert d1 == tmp_path / "eu" / "Desktop" / "X" / "2026-11-10-a"
+    assert d2 == tmp_path / "eu" / "Clipuri" / "2026-11-10-a"
+
+
+def test_run_dir_without_folder_stays_in_runs_root():
+    d = c.new_run_dir(Path("/x/a.mp4"), date(2026, 11, 10), root=None)
+    assert d.parent == c.runs_root()

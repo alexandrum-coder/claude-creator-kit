@@ -95,9 +95,18 @@ def slugify(text: str) -> str:
     return slug[:40].strip("-")
 
 
-def new_run_dir(video: Path, when: date) -> Path:
+def new_run_dir(video: Path, when: date, root: str | Path | None = None) -> Path:
+    """Create the run folder under runs_root(), or under a folder the coach chose.
+
+    A chosen folder may start with ~; one that is not absolute counts from the home folder.
+    """
     base = f"{when:%Y-%m-%d}-{slugify(Path(video).stem) or 'clip'}"
-    root = runs_root()
+    if root is None:
+        root = runs_root()
+    else:
+        root = Path(root).expanduser()
+        if not root.is_absolute():
+            root = Path.home() / root
     root.mkdir(parents=True, exist_ok=True)
     n = 1
     while True:

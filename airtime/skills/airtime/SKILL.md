@@ -1,6 +1,6 @@
 ---
 name: airtime
-description: AirTime transformă un singur clip filmat într-un montaj propus, un video YouTube programat și 3-5 reels Instagram programate, cu o singură confirmare. Folosește când coachul spune "AirTime" (profilul implicit), "AirTime <profil>" (de exemplu "AirTime pilates"), "AirTime check" (verifică uneltele, viteza și Business Suite) sau "AirTime conectare" (conectează YouTube și Instagram).
+description: AirTime transformă un singur clip filmat într-un montaj propus, un video YouTube programat și 3-5 reels Instagram programate, cu o singură confirmare. Folosește când coachul spune "AirTime" (profilul implicit), "AirTime <profil>" (de exemplu "AirTime pilates"), "AirTime check" (verifică uneltele, viteza și Business Suite) sau "AirTime conectare" (conectează YouTube și Instagram). Fără nicio urcare: "AirTime fără publicare" (sau "no publish", "AirTime local", "clip local": montaj, texte și reels gata) și "AirTime doar montaj" (sau "doar clip", "Final Edit": doar videoclipul montat). "AirTime în <dosar>" pune rularea în alt dosar.
 ---
 
 # AirTime
@@ -62,13 +62,28 @@ Profilul se citește și se salvează cu `airtime_config` (`load_profile`, `save
 
 Dacă `$AIRTIME_HOME/profiles/NUME.json` nu există, întreabă pe rând câmpurile din `DEFAULTS` (limba, numele canalului, textul de intro, orele implicite pentru YouTube și reels, Facebook da/nu, Shorts da/nu, cuvintele-cheie de bază, tipul de clip: demonstrații, culise sau vorbit). Culorile le iei din `brandkit`, dacă există; altfel rămân cele implicite. Salvează cu `save_profile` și arată pe scurt ce ai salvat.
 
+## Moduri fără publicare
+
+Coachul poate cere, după „AirTime” sau „AirTime <profil>”, o rulare fără nicio urcare și fără programare. Frazele se pot combina între ele și cu profilul (de exemplu „AirTime pilates doar montaj în ~/Desktop/Clipuri”). Fără una dintre ele, fluxul e cel obișnuit, cu publicare.
+
+- **Tot gata**: „fără publicare”, „no publish”, „AirTime local”, „clip local”. Faci pașii 0-6 (montaj, texte YouTube, reels) și te oprești înainte de pasul 7: fără `calendar.json`, fără tabel de confirmare, fără urcare. În `run.json`, `mod` = `"local"`.
+- **Doar montaj**: „doar clip”, „doar montaj”, „Final Edit”. Faci pașii 0-3 (tăieturi, intro, capitole, `youtube.mp4`) și te oprești: fără texte, fără reels, fără urcare. În `run.json`, `mod` = `"montaj"`.
+
+În ambele moduri:
+
+- La pasul 0, YouTube sau Instagram neconectate nu opresc lucrul; spune-i coachului pe un rând că publicarea, mai târziu, va cere conectarea. Te oprești doar dacă lipsesc uneltele.
+- La pasul 1 nu întrebi Facebook, Shorts și data clipului lung; le întrebi când coachul reia rularea ca s-o publice. Unde un pas cere o dată pentru validare (`--publish-at` la pasul 4), folosești data propusă implicit (prima zi liberă, nu mai devreme de poimâine, la `youtube_time`), fără s-o întrebi.
+- La final scrii `<RUN_DIR>/raport.md`: fișierele făcute, cu căile complete, textele complete (titlul și descrierea YouTube, descrierile și hashtagurile reels-urilor, dacă există) și propoziția „Nimic nu a fost urcat sau programat.” Arată-l pe scurt coachului, cu calea folderului, și spune-i că poate publica mai târziu scriind „AirTime” cu același clip (plus profilul și „în <dosar>”, dacă le-a folosit acum).
+
+„în <dosar>”: rularea se face ca subdosar în dosarul ales, cu `new_run_dir(Path(clip), date.today(), root="<dosar>")`. Funcția creează dosarul dacă lipsește, pune `-2`, `-3` dacă subdosarul există deja și nu suprascrie nimic. `~` e folderul personal, iar o cale care nu începe cu `~` sau `/` se ia tot din folderul personal („în Clipuri” = `~/Clipuri`). Merge și cu publicare, și fără. Reluarea caută în dosarul ales numai dacă coachul îl spune din nou; „AirTime” simplu caută doar sub `runs_root()`.
+
 ## Fluxul unei rulări (pașii 0-9)
 
 Anunță coachului pașii mari la început, pe o singură linie, apoi mergi pe rând. La fiecare pas lung spune ce se întâmplă și cam cât durează.
 
 ### 0. Verificare
 
-Rulează `"$SCRIPTS/check.sh" --quick --profile NUME`. Dacă ceva obligatoriu lipsește (unelte, YouTube neconectat), oprește-te, spune ce lipsește și trimite la ancora potrivită din `AIRTIME-INSTALL.md`. Instagram neconectat nu oprește montajul și YouTube-ul; oprește doar pasul 8 pentru reels, deci spune-i de la început.
+Rulează `"$SCRIPTS/check.sh" --quick --profile NUME`. Dacă ceva obligatoriu lipsește (unelte, YouTube neconectat), oprește-te, spune ce lipsește și trimite la ancora potrivită din `AIRTIME-INSTALL.md`. Instagram neconectat nu oprește montajul și YouTube-ul; oprește doar pasul 8 pentru reels, deci spune-i de la început. În modurile fără publicare (vezi „Moduri fără publicare”), YouTube și Instagram neconectate nu opresc nimic.
 
 ### 1. Primire
 
@@ -76,11 +91,11 @@ Rulează `"$SCRIPTS/check.sh" --quick --profile NUME`. Dacă ceva obligatoriu li
 
 1. Calea clipului. Verifică că fișierul există.
 2. "Vocea e înregistrată separat, peste imagine?" (`VOICEOVER` da/nu).
-3. Facebook (da/nu) și YouTube Shorts (da/nu); implicit, ce e în profil.
-4. Data clipului lung. Propune prima zi liberă (nu mai devreme de poimâine) la `youtube_time`.
+3. Facebook (da/nu) și YouTube Shorts (da/nu); implicit, ce e în profil. Nu o pui în modurile fără publicare.
+4. Data clipului lung. Propune prima zi liberă (nu mai devreme de poimâine) la `youtube_time`. Nu o pui în modurile fără publicare.
 5. Orientarea: `"$PY" "$SCRIPTS/compose.py" probe "<clip>"` (rezultat: `width`, `height`, `fps`, `duration`, `has_audio`). Clip vertical (`height > width`) de cel mult 180 de secunde: întreabă "E direct un reel sau un Short?". Lungimile 10-15 minute orizontale sau verticale merg ca videoclip YouTube obișnuit.
 
-Reluare, înainte de a crea ceva: caută sub `runs_root()` foldere ale aceluiași clip (același `slugify(Path(clip).stem)` în nume, sau `video` identic în `run.json`) care au `calendar.json` cu cel puțin un element care nu e `programat`. Dacă găsești, întreabă: "Am găsit o rulare neterminată pentru acest clip (<folder>). O reiau de acolo?" La "da", refolosești acel `RUN_DIR` (nu creezi `-2`, ca să rămână `uploaded.json` și `calendar.json`), sari peste pașii 2-6 ale căror fișiere există deja (`cuts-aprobate.json`, `youtube.mp4`, `youtube-meta.json`, `reels-aprobate.json`, `instagram.json`), arăți din nou tabelul de la pasul 7 și aștepți un nou "da" sau "confirm"; la pasul 8 elementele `programat` se sar. Dacă există deja elemente `programat`, nu refaci montajul sau reels-urile din care vin fișierele lor (regula 7 din `references/calendar.md`). La "nu", sau dacă nu găsești nimic, creezi folderul rulării: `new_run_dir(Path(clip), date.today())` (sub `runs_root()`, adică `$AIRTIME_RUNS` sau, dacă lipsește, `~/AirTime`: `AAAA-LL-ZZ-<nume>/`). Scrie (sau actualizează) în el `run.json` cu `video` (calea clipului), `profile`, `clip_type`, `voiceover`, `facebook`, `shorts`, `data_youtube`, `orientation`, `kind` (`lung`, `reel` sau `short`).
+Reluare, înainte de a crea ceva: caută sub `runs_root()` (sau în dosarul ales, la „în <dosar>”) foldere ale aceluiași clip (același `slugify(Path(clip).stem)` în nume, sau `video` identic în `run.json`) care au `calendar.json` cu cel puțin un element care nu e `programat`, sau care au în `run.json` `mod` `"local"` ori `"montaj"` (rulări fără publicare, fără `calendar.json`). Dacă găsești, întreabă: "Am găsit o rulare neterminată pentru acest clip (<folder>). O reiau de acolo?" La "da", refolosești acel `RUN_DIR` (nu creezi `-2`, ca să rămână `uploaded.json` și `calendar.json`), sari peste pașii 2-6 ale căror fișiere există deja (`cuts-aprobate.json`, `youtube.mp4`, `youtube-meta.json`, `reels-aprobate.json`, `instagram.json`), arăți din nou tabelul de la pasul 7 și aștepți un nou "da" sau "confirm"; la pasul 8 elementele `programat` se sar. Dacă există deja elemente `programat`, nu refaci montajul sau reels-urile din care vin fișierele lor (regula 7 din `references/calendar.md`). La "da" pentru o rulare fără publicare, faci doar pașii lipsă ai rulării cerute acum, fără să refaci montajul; dacă acum e o rulare cu publicare, pui întrebările 3 și 4 de mai sus, treci `mod` pe `"complet"` și ajungi la tabelul de la pasul 7. La "nu", sau dacă nu găsești nimic, creezi folderul rulării: `new_run_dir(Path(clip), date.today(), root=<dosarul ales sau None>)` (fără dosar ales, sub `runs_root()`, adică `$AIRTIME_RUNS` sau, dacă lipsește, `~/AirTime`: `AAAA-LL-ZZ-<nume>/`). Scrie (sau actualizează) în el `run.json` cu `video` (calea clipului), `profile`, `clip_type`, `voiceover`, `facebook`, `shorts`, `data_youtube`, `orientation`, `kind` (`lung`, `reel` sau `short`), `mod` (`complet`, `local` sau `montaj`).
 
 ### 2. Propunerea de tăieturi
 
