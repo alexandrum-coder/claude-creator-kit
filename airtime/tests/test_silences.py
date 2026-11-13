@@ -484,3 +484,16 @@ def test_snap_needs_a_window_twice_as_quiet():
     for i in range(lo, hi):
         s[i] = s[i] // 3                 # now a quarter of the edge level: the edge moves
     assert 1.05 <= silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]["start"] <= 1.07
+
+
+def test_apply_no_fade_on_pieces_of_60ms_or_less(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    monkeypatch.setattr(silences, "has_audio", lambda v: True)
+    monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
+    cuts = [{"id": 1, "start": 4.0, "end": 5.0}, {"id": 2, "start": 5.05, "end": 6.0}]
+    res = silences.apply_cuts("in.mp4", cuts, str(tmp_path / "o.mp4"))
+    assert res["keep"] == [[0.0, 4.0], [5.0, 5.05], [6.0, 10.0]]
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1].split(";")
+    a = {i: [p for p in graph if p.startswith("[0:a]") and p.endswith("[a%d]" % i)][0] for i in range(3)}
+    assert "afade" not in a[1]                       # 50 ms piece: no fade at all
+    assert "afade=t=out" in a[0] and "afade=t=in" in a[2]
