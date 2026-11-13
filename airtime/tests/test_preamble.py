@@ -174,3 +174,27 @@ def test_skill_steps_0_and_1_follow_the_mode():
     assert "`mod`" in step1
     assert "fără `calendar.json`" in step1
     assert "new_run_dir(Path(clip), date.today(), root=" in step1
+
+
+def _step1() -> str:
+    flow = _section(SKILL.read_text(encoding="utf-8"), "Fluxul unei rulări (pașii 0-9)")
+    return flow.split("### 1.")[1].split("### 2.")[0]
+
+
+def test_skill_resume_for_publishing_revalidates_with_chosen_date():
+    step1 = _step1()
+    assert "validezi din nou `youtube-meta.json` cu data aleasă" in step1
+    assert "--dry-run" in step1
+
+
+def test_skill_resume_without_publishing_stops_again():
+    step1 = _step1()
+    assert 'La "da" pentru o rulare cu `calendar.json`' in step1
+    assert "te oprești din nou fără urcare" in step1
+
+
+def test_skill_no_publish_details_approved_after_checkpoint():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Moduri fără publicare")
+    assert "data propusă implicit" in sec
+    assert "publicarea, mai târziu, va cere conectarea" in sec
+    assert "„Nimic nu a fost urcat sau programat.”" in sec
