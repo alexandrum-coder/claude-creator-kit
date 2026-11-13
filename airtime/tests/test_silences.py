@@ -466,3 +466,21 @@ def test_apply_snaps_to_real_silence(tmp_path):
     (_, b), (c, _) = res["keep"]
     assert 2.06 <= b <= 2.13
     assert 2.89 <= c <= 2.97
+
+
+def test_snap_ties_pick_the_window_nearest_the_edge():
+    s = _samples(8000, 4.0, [(1.03, 1.05), (1.10, 1.12), (1.88, 1.90), (1.95, 1.97)])
+    out = silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]
+    assert 1.03 <= out["start"] <= 1.05
+    assert 1.95 <= out["end"] <= 1.97
+
+
+def test_snap_needs_a_window_twice_as_quiet():
+    s = _samples(8000, 4.0, [])
+    lo, hi = int(round(1.05 * 8000)), int(round(1.07 * 8000))
+    for i in range(lo, hi):
+        s[i] = s[i] * 3 // 4             # only 25 % quieter: the edge stays
+    assert silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]["start"] == 1.0
+    for i in range(lo, hi):
+        s[i] = s[i] // 3                 # now a quarter of the edge level: the edge moves
+    assert 1.05 <= silences.snap_cuts([{"id": 1, "start": 1.0, "end": 2.0}], s, 8000, 4.0)[0]["start"] <= 1.07
