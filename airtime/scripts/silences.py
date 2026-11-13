@@ -34,6 +34,8 @@ SNAP_FRAME = 0.01
 SNAP_MIN_CUT = 0.3
 SNAP_RATIO = 0.5
 FADE = 0.03   # fade-out / fade-in at each join, so a cut never clicks
+JCUT = 0.15   # J-cut: at a join the next piece's sound starts this much early
+JCUT_MIN = 0.21   # J-cut only if the cut is at least this long and the piece before longer
 
 
 # ---------------------------------------------------------------- words
@@ -359,7 +361,19 @@ def snap_cuts(cuts: list[dict], samples: array, rate: int, duration: float) -> l
     return out
 
 
-def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
+def jcut_intervals(keep: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Audio pieces for a J-cut: at each long-enough join the sound of the next piece starts
+    JCUT early (taken from the cut) and the piece before ends JCUT early. Total length is kept."""
+    audio = [list(p) for p in keep]
+    for i in range(len(keep) - 1):
+        (a, b), (c, _) = keep[i], keep[i + 1]
+        if c - b >= JCUT_MIN - EPS and b - a > JCUT_MIN + EPS:
+            audio[i][1] = b - JCUT
+            audio[i + 1][0] = c - JCUT
+    return [(a, b) for a, b in audio]
+
+
+def apply_cuts(video: str, cuts: list[dict], out: str, jl: bool = True) -> dict:
     duration = probe_duration(video)
     audio = has_audio(video)
     if audio and cuts:
@@ -367,26 +381,31 @@ def apply_cuts(video: str, cuts: list[dict], out: str) -> dict:
     keep = keep_intervals(duration, cuts)
     if not keep:
         raise SystemExit("nothing left after cuts")
-    parts, labels = [], ""
+    parts, vlabels, alabels = [], "", ""
     for i, (a, b) in enumerate(keep):
         parts.append("[0:v]trim=start=%.6f:end=%.6f,setpts=PTS-STARTPTS[v%d]" % (a, b, i))
-        labels += "[v%d]" % i
-        if audio:
+        vlabels += "[v%d]" % i
+    if audio:
+        apieces = jcut_intervals(keep) if jl else keep
+        for i, (a, b) in enumerate(apieces):
             fades = ""
             if b - a > 2 * FADE:
                 if i > 0:
                     fades += ",afade=t=in:st=0:d=%.3f" % FADE
-                if i < len(keep) - 1:
+                if i < len(apieces) - 1:
                     fades += ",afade=t=out:st=%.6f:d=%.3f" % (b - a - FADE, FADE)
             parts.append("[0:a]atrim=start=%.6f:end=%.6f,asetpts=PTS-STARTPTS%s[a%d]" % (a, b, fades, i))
-            labels += "[a%d]" % i
+            alabels += "[a%d]" % i
     tonemap = tonemap_filter(color_transfer(video))
     warnings = []
     if tonemap and not has_filter("zscale"):
         tonemap = ""
         warnings.append(HDR_WARNING)
     vout = "[vc]" if tonemap else "[v]"
-    parts.append("%sconcat=n=%d:v=1:a=%d%s%s" % (labels, len(keep), 1 if audio else 0, vout, "[a]" if audio else ""))
+    # picture and sound are joined separately: with a J-cut their pieces differ in length
+    parts.append("%sconcat=n=%d:v=1:a=0%s" % (vlabels, len(keep), vout))
+    if audio:
+        parts.append("%sconcat=n=%d:v=0:a=1[a]" % (alabels, len(keep)))
     if tonemap:
         # iPhone HDR: tone-map to SDR here, so curat.mp4 (and the intro, reels, Shorts after it) is bt709
         parts.append("[vc]%s[v]" % tonemap)
@@ -444,7 +463,7 @@ def cmd_apply(a) -> int:
     data = _load_json(a.cuts)
     cuts = data["cuts"] if isinstance(data, dict) else data
     try:
-        res = apply_cuts(a.video, cuts, a.out)
+        res = apply_cuts(a.video, cuts, a.out, jl=not a.fara_jl)
     except subprocess.CalledProcessError as e:
         print(json.dumps({"error": "ffmpeg a eșuat: %s" % (e.stderr or "")[-1500:].strip(), "step": "apply"},
                          ensure_ascii=False))
@@ -478,6 +497,7 @@ def main(argv=None) -> int:
     s.add_argument("--cuts", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--map", required=True)
+    s.add_argument("--fara-jl", action="store_true", help="fără J-cut: sunetul urmează exact imaginea")
     s.set_defaults(fn=cmd_apply)
     s = sub.add_parser("remap")
     s.add_argument("--transcript", required=True)

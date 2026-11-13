@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -442,7 +443,7 @@ def test_apply_fades_audio_at_joins_only(tmp_path, monkeypatch):
     monkeypatch.setattr(silences, "has_audio", lambda v: True)
     monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
     res = silences.apply_cuts("in.mp4", [{"id": 1, "start": 4.0, "end": 5.0, "reason": "p", "text": ""}],
-                              str(tmp_path / "o.mp4"))
+                              str(tmp_path / "o.mp4"), jl=False)   # fades alone; with the J-cut: 4b tests
     graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1].split(";")
     a0 = [p for p in graph if p.startswith("[0:a]") and p.endswith("[a0]")][0]
     a1 = [p for p in graph if p.startswith("[0:a]") and p.endswith("[a1]")][0]
@@ -491,9 +492,90 @@ def test_apply_no_fade_on_pieces_of_60ms_or_less(tmp_path, monkeypatch):
     monkeypatch.setattr(silences, "has_audio", lambda v: True)
     monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
     cuts = [{"id": 1, "start": 4.0, "end": 5.0}, {"id": 2, "start": 5.05, "end": 6.0}]
-    res = silences.apply_cuts("in.mp4", cuts, str(tmp_path / "o.mp4"))
+    res = silences.apply_cuts("in.mp4", cuts, str(tmp_path / "o.mp4"), jl=False)
     assert res["keep"] == [[0.0, 4.0], [5.0, 5.05], [6.0, 10.0]]
     graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1].split(";")
     a = {i: [p for p in graph if p.startswith("[0:a]") and p.endswith("[a%d]" % i)][0] for i in range(3)}
     assert "afade" not in a[1]                       # 50 ms piece: no fade at all
     assert "afade=t=out" in a[0] and "afade=t=in" in a[2]
+
+
+# ---- 4b: J-cut of 150 ms at joins (D-09)
+
+def _trims(graph, kind):
+    """[(start, end), ...] of the video ('v') or audio ('a') pieces, in order."""
+    pat = r"\[0:v\]trim=start=([0-9.]+):end=([0-9.]+)" if kind == "v" else \
+        r"\[0:a\]atrim=start=([0-9.]+):end=([0-9.]+)"
+    return [(round(float(a), 6), round(float(b), 6)) for a, b in re.findall(pat, graph)]
+
+
+def _apply_graph(tmp_path, monkeypatch, cuts, **kw):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    monkeypatch.setattr(silences, "has_audio", lambda v: True)
+    monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
+    res = silences.apply_cuts("in.mp4", cuts, str(tmp_path / "o.mp4"), **kw)
+    return res, seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+
+
+def test_apply_jcut_starts_next_audio_150ms_early(tmp_path, monkeypatch):
+    res, graph = _apply_graph(tmp_path, monkeypatch, [{"id": 1, "start": 4.0, "end": 5.0}])
+    assert _trims(graph, "v") == [(0.0, 4.0), (5.0, 10.0)]          # picture as before
+    assert _trims(graph, "a") == [(0.0, 3.85), (4.85, 10.0)]        # sound leads by 150 ms
+    assert res["keep"] == [[0.0, 4.0], [5.0, 10.0]]                 # map.json unchanged
+    a0 = [p for p in graph.split(";") if p.endswith("[a0]")][0]
+    a1 = [p for p in graph.split(";") if p.endswith("[a1]")][0]
+    assert "afade=t=out:st=3.820000:d=0.030" in a0 and "afade=t=in:st=0:d=0.030" in a1
+
+
+def test_apply_without_jl_audio_follows_video(tmp_path, monkeypatch):
+    _, graph = _apply_graph(tmp_path, monkeypatch, [{"id": 1, "start": 4.0, "end": 5.0}], jl=False)
+    assert _trims(graph, "a") == _trims(graph, "v") == [(0.0, 4.0), (5.0, 10.0)]
+
+
+def test_apply_jcut_only_where_cut_and_previous_piece_are_long_enough(tmp_path, monkeypatch):
+    cuts = [{"id": 1, "start": 2.0, "end": 3.0},     # join 0: cut 1 s, piece before 2 s   -> J
+            {"id": 2, "start": 3.2, "end": 5.0},     # join 1: piece before only 0.2 s     -> no J
+            {"id": 3, "start": 7.0, "end": 7.21},    # join 2: cut exactly 0.21 s          -> J
+            {"id": 4, "start": 8.0, "end": 8.2}]     # join 3: cut only 0.2 s              -> no J
+    res, graph = _apply_graph(tmp_path, monkeypatch, cuts)
+    assert _trims(graph, "v") == [(0.0, 2.0), (3.0, 3.2), (5.0, 7.0), (7.21, 8.0), (8.2, 10.0)]
+    assert _trims(graph, "a") == [(0.0, 1.85), (2.85, 3.2), (5.0, 6.85), (7.06, 8.0), (8.2, 10.0)]
+    assert res["keep"] == [[0.0, 2.0], [3.0, 3.2], [5.0, 7.0], [7.21, 8.0], [8.2, 10.0]]
+
+
+def test_cli_apply_fara_jl(tmp_path, monkeypatch):
+    seen = _fake_apply_env(monkeypatch, FILTERS_WITHOUT, transfer="bt709")
+    monkeypatch.setattr(silences, "has_audio", lambda v: True)
+    monkeypatch.setattr(silences, "read_audio", lambda v, rate=8000: _samples(rate, 10.0, []))
+    cuts = tmp_path / "cuts.json"
+    cuts.write_text(json.dumps({"cuts": [{"id": 1, "start": 4.0, "end": 5.0}]}))
+    args = ["apply", "--video", "in.mp4", "--cuts", str(cuts), "--out", str(tmp_path / "o.mp4"),
+            "--map", str(tmp_path / "map.json")]
+    assert silences.main(args + ["--fara-jl"]) == 0
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert _trims(graph, "a") == _trims(graph, "v")
+    assert silences.main(args) == 0
+    graph = seen["cmd"][seen["cmd"].index("-filter_complex") + 1]
+    assert _trims(graph, "a") == [(0.0, 3.85), (4.85, 10.0)]
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="no ffmpeg")
+def test_apply_jcut_keeps_audio_and_video_the_same_length(tmp_path):
+    clip = tmp_path / "in.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=25:duration=6",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=6",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(clip)],
+        check=True,
+    )
+    out = tmp_path / "o.mp4"
+    silences.apply_cuts(str(clip), [{"id": 1, "start": 2.0, "end": 3.0}, {"id": 2, "start": 4.0, "end": 4.5}],
+                        str(out))
+
+    def dur(stream):
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", stream, "-show_entries",
+                            "stream=duration", "-of", "csv=p=0", str(out)], capture_output=True, text=True)
+        return float(r.stdout.strip())
+
+    assert abs(dur("v:0") - 4.5) < 0.05
+    assert abs(dur("a:0") - dur("v:0")) < 0.05
