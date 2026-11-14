@@ -28,6 +28,7 @@ Promptul conține linii `CHEIE: valoare`:
 - Pentru `monteaza`: `TITLU` (opțional, pentru intro).
 - Pentru `texte`: `DATA_YOUTUBE` (`AAAA-LL-ZZ HH:MM`, opțional; implicit peste 2 zile la `youtube_time` din profil).
 - Pentru `reels`: `STIL` (`bold`, `bounce` sau `clean`; implicit `bold`).
+- Pentru `monteaza` și `reels`: `SUNET_SEPARAT` (`true` sau `false`, implicit `false`). La `true` scrii și vocea separată și imaginea fără sunet; subtitrările se scriu oricum.
 
 Dacă lipsește `COMANDA`, `RUN_DIR` sau `PROFIL`, întorci `EROARE: lipsește <cheia>`.
 
@@ -127,6 +128,12 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
 7. Compune:
    `"$PY" "$SCRIPTS/compose.py" --curat "$RUN_DIR/curat.mp4" --render "$RUN_DIR/render/render.json" --out "$RUN_DIR/youtube.mp4"`
 8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: fără capitol separat pentru intro (YouTube cere minimum 10 secunde pe capitol). Primul capitol din `chapters.json` rămâne la `t: 0` (intro-ul face parte din el); fiecare capitol următor primește `t` mărit cu durata intro-ului, rotunjit la secundă. Așa timpii urmează videoclipul final; pentru `texte` e sursa capitolelor.
+9. Exporturile. Subtitrările se scriu mereu, cu timpii decalați cu durata intro-ului din pasul 8 (în secunde, nerotunjită):
+   `"$PY" "$SCRIPTS/exports.py" srt --transcript "$RUN_DIR/transcript-curat.json" --out "$RUN_DIR/youtube.srt" --offset <durata intro-ului>`
+   Dacă `kind` din `RUN_DIR/run.json` e `short` (Short-ul urcă `curat.mp4`, fără intro), scrii și:
+   `"$PY" "$SCRIPTS/exports.py" srt --transcript "$RUN_DIR/transcript-curat.json" --out "$RUN_DIR/curat.srt"`
+   stdout e `{"srt": <cale>}`, sau `{"srt": null, "reason": ...}` dacă nu se vorbește (atunci nu există fișier și scrii în bloc `Subtitrări omise: clipul nu are vorbire`).
+   Numai dacă `SUNET_SEPARAT: true`: `"$PY" "$SCRIPTS/exports.py" stems --video "$RUN_DIR/youtube.mp4" --out-dir "$RUN_DIR" --name youtube` (la `kind: short`, `--video "$RUN_DIR/curat.mp4" --name curat`). stdout: `{"voice", "silent_video", "warnings"}`; `warnings` merg pe rândul `Avertismente:`.
 
 Bloc de întors:
 
@@ -138,7 +145,9 @@ Intro: <secunde> s
 Capitole (<n>):
   <mm:ss> <titlu>   (cel mult 8 rânduri, pe timpul final)
 Transcript tăiat: <RUN_DIR>/transcript-curat.json
-Avertismente: <fiecare din warnings de la apply, pe scurt>   (numai dacă există)
+Subtitrări: <RUN_DIR>/youtube.srt (și curat.srt la Short)   / Subtitrări omise: clipul nu are vorbire
+Sunet separat: <fișierul .wav>, <fișierul fără sunet>   (numai la SUNET_SEPARAT: true)
+Avertismente: <fiecare din warnings de la apply și exporturi, pe scurt>   (numai dacă există)
 ```
 
 Păstrează blocul sub 10 rânduri; dacă sunt multe capitole, scrie numai primele și `... vezi chapters-youtube.json`.
@@ -231,6 +240,10 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
    - `alt_text` (în limba profilului, cu diacritice): o propoziție care descrie ce se vede și se spune, cel mult 120 de caractere.
    - Stilul: dacă profilul are cheia `voice` (text cu vocea salvată a brandului), scrie caption-urile în acea voce, aplicând regulile din skill-ul `brand-voice` dacă e instalat. Altfel, ton cald, direct, în limba profilului, la persoana a doua singular sau cum cere `references/texte.md`.
 4. Verifică: numărul de intrări din `instagram.json` = numărul de fișiere din `reels`; fiecare `file` există; fiecare `hashtags` are între 3 și 5 elemente.
+5. Exporturile. Subtitrările se scriu mereu, cu timpii segmentelor de după aliniere, ca reels-urile:
+   `"$PY" "$SCRIPTS/exports.py" reels-srt --transcript "$RUN_DIR/transcript-curat.json" --segments "$RUN_DIR/reels/work/snapped_segments.json" --reels-dir "$RUN_DIR/reels"`
+   stdout: `{"srt": [căile short_NN_ig.srt]}`, cu `warnings` pentru reels-urile fără vorbire (fără fișier).
+   Numai dacă `SUNET_SEPARAT: true`, pentru fiecare `short_NN_ig.mp4`: `"$PY" "$SCRIPTS/exports.py" stems --video "$RUN_DIR/reels/short_NN_ig.mp4" --out-dir "$RUN_DIR/reels" --name short_NN_ig`.
 
 Bloc de întors:
 
@@ -240,6 +253,7 @@ Reels randate: <n> în <RUN_DIR>/reels/
   <nume fișier>  <mm:ss>  (câte un rând, cel mult 5)
 Texte: <RUN_DIR>/instagram.json
 Stil: <STIL>, orientare: <orientare>
+Subtitrări: <n> fișiere .srt în <RUN_DIR>/reels/; sunet separat: da/nu
 Avertismente: <fiecare din warnings, pe scurt>   (numai dacă există)
 Nepublicat: urcarea și programarea rămân în sarcina skill-ului.
 ```
