@@ -375,3 +375,16 @@ def test_has_words():
     assert not reels.has_words({"segments": [{"start": 0, "end": 1, "text": "", "words": []}]})
     assert not reels.has_words({})
     assert reels.has_words({"segments": [{"words": [{"word": "a", "start": 0, "end": 1}]}]})
+
+
+def test_build_removes_stale_subtitles_and_separate_sound(tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    out.mkdir()
+    stale = ["short_01_ig.srt", "short_01_ig-voce.wav", "short_01_ig-fara-sunet.mp4",
+             "short_09_ig.srt", "short_09_ig-voce.wav", "short_09_ig-fara-sunet.mp4"]
+    for name in stale:
+        (out / name).write_bytes(b"old")
+    monkeypatch.setattr(reels, "run_step", _fake_run_factory([], 3, 3))
+    curat, tr, ap = _inputs(tmp_path)
+    reels.build(curat, tr, ap, "bold", out, "horizontal")
+    assert [n for n in stale if (out / n).exists()] == []

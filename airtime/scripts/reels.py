@@ -237,7 +237,8 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation, warnin
     render_dir.mkdir(parents=True, exist_ok=True)
     # stale files from an earlier run must never be mistaken for new results
     for stale in list(clips_dir.glob("clip_*.mp4")) + list(render_dir.glob("short_*.mp4")) \
-            + list(out_dir.glob("short_*_ig.mp4")):
+            + list(out_dir.glob("short_*_ig.mp4")) + list(out_dir.glob("short_*_ig.srt")) \
+            + list(out_dir.glob("short_*_ig-voce.wav")) + list(out_dir.glob("short_*_ig-fara-sunet.mp4")):
         stale.unlink()
 
     snapped = work / "snapped_segments.json"

@@ -111,13 +111,45 @@ def _load(path) -> dict:
 
 
 def _write(path: Path, text: str) -> None:
+    """Write the file, or leave none: a half-written file is removed (D-11, point 6)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    try:
+        path.write_text(text, encoding="utf-8")
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
 
 
 def _ff(args: list) -> None:
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *[str(a) for a in args]],
                    check=True, capture_output=True, text=True)
+
+
+def _reason(e: BaseException) -> str:
+    """The short reason for the warning line `<file> lipsește: <reason>`."""
+    if isinstance(e, subprocess.CalledProcessError):
+        lines = [x.strip() for x in (e.stderr or "").splitlines() if x.strip()]
+        text = lines[-1] if lines else str(e)
+    elif isinstance(e, OSError) and e.strerror:
+        text = e.strerror
+    else:
+        text = str(e)
+    return text[:200]
+
+
+def _missing(path: Path, e: BaseException) -> str:
+    return "%s lipsește: %s" % (path.name, _reason(e))
+
+
+def _make(out: Path, args: list, warnings: list) -> str | None:
+    """Run one ffmpeg export; on failure remove the half-written file and add a warning."""
+    try:
+        _ff(args)
+        return str(out)
+    except (subprocess.CalledProcessError, OSError) as e:
+        out.unlink(missing_ok=True)
+        warnings.append(_missing(out, e))
+        return None
 
 
 def _has_audio(video: Path) -> bool:
@@ -128,20 +160,23 @@ def _has_audio(video: Path) -> bool:
 
 
 def stems(video, out_dir, name) -> dict:
-    """Voice exactly as in the video (no filter) and the picture without sound (stream copy)."""
+    """Voice exactly as in the video (no filter) and the picture without sound (stream copy).
+
+    The two files are independent: if one fails, the other is still made (D-11, point 5).
+    """
     video, out_dir = Path(video), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     voice = out_dir / ("%s-voce.wav" % name)
     silent = out_dir / ("%s-fara-sunet.mp4" % name)
     warnings = []
     if _has_audio(video):
-        _ff(["-i", video, "-vn", "-c:a", "pcm_s16le", voice])
-        voice_path = str(voice)
+        voice_path = _make(voice, ["-i", video, "-vn", "-c:a", "pcm_s16le", voice], warnings)
     else:
         warnings.append("%s nu are sunet; nu există fișier doar cu vocea." % video.name)
         voice_path = None
-    _ff(["-i", video, "-an", "-c:v", "copy", "-movflags", "+faststart", silent])
-    return {"voice": voice_path, "silent_video": str(silent), "warnings": warnings}
+    silent_path = _make(silent, ["-i", video, "-an", "-c:v", "copy", "-movflags", "+faststart", silent],
+                        warnings)
+    return {"voice": voice_path, "silent_video": silent_path, "warnings": warnings}
 
 
 def reels_srt(transcript, segments, reels_dir) -> dict:
@@ -158,7 +193,11 @@ def reels_srt(transcript, segments, reels_dir) -> dict:
             warnings.append("%s: %s" % (f.name, NO_SPEECH))
             continue
         out = f.with_suffix(".srt")
-        _write(out, text)
+        try:
+            _write(out, text)
+        except OSError as e:          # one reel failing does not stop the others (D-11, point 5)
+            warnings.append(_missing(out, e))
+            continue
         written.append(str(out))
     res = {"srt": written}
     if warnings:

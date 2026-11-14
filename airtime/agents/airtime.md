@@ -15,7 +15,7 @@ Ești agentul de producție AirTime. Lucrezi pentru un coach, dar nu vorbești n
 - Nu instalezi nimic (fără brew, npm, pip). Dacă lipsește un instrument, întorci `EROARE:` cu numele lui.
 - Scrii "sunt", niciodată varianta cu â.
 - Răspunsul final e un bloc de cel mult 10 rânduri: căile fișierelor, cifrele, rezumatul. Fără alte explicații. După fiecare pas intermediar ținut pentru tine nu scrii nimic în plus.
-- Dacă un script iese cu cod diferit de 0, oprești, nu improvizezi alt drum. Întorci `EROARE: <pas> - <mesajul scriptului, scurt>`.
+- Dacă un script iese cu cod diferit de 0, oprești, nu improvizezi alt drum. Întorci `EROARE: <pas> - <mesajul scriptului, scurt>`. Excepție: exporturile de la sfârșitul lui `monteaza` și `reels` (`exports.py`); acolo montajul și reels-urile rămân, iar problema merge pe rândul `Avertismente:`.
 
 ## Intrarea
 
@@ -128,12 +128,15 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
 7. Compune:
    `"$PY" "$SCRIPTS/compose.py" --curat "$RUN_DIR/curat.mp4" --render "$RUN_DIR/render/render.json" --out "$RUN_DIR/youtube.mp4"`
 8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: fără capitol separat pentru intro (YouTube cere minimum 10 secunde pe capitol). Primul capitol din `chapters.json` rămâne la `t: 0` (intro-ul face parte din el); fiecare capitol următor primește `t` mărit cu durata intro-ului, rotunjit la secundă. Așa timpii urmează videoclipul final; pentru `texte` e sursa capitolelor.
-9. Exporturile. Subtitrările se scriu mereu, cu timpii decalați cu durata intro-ului din pasul 8 (în secunde, nerotunjită):
+9. Exporturile. Întâi ștergi exporturile unui montaj de dinainte, ca să rămână doar cele potrivite cu montajul nou:
+   `rm -f "$RUN_DIR/youtube.srt" "$RUN_DIR/curat.srt" "$RUN_DIR/youtube-voce.wav" "$RUN_DIR/youtube-fara-sunet.mp4" "$RUN_DIR/curat-voce.wav" "$RUN_DIR/curat-fara-sunet.mp4"`
+   Subtitrările se scriu mereu, cu timpii decalați cu durata intro-ului din pasul 8 (în secunde, nerotunjită):
    `"$PY" "$SCRIPTS/exports.py" srt --transcript "$RUN_DIR/transcript-curat.json" --out "$RUN_DIR/youtube.srt" --offset <durata intro-ului>`
    Dacă `kind` din `RUN_DIR/run.json` e `short` (Short-ul urcă `curat.mp4`, fără intro), scrii și:
    `"$PY" "$SCRIPTS/exports.py" srt --transcript "$RUN_DIR/transcript-curat.json" --out "$RUN_DIR/curat.srt"`
    stdout e `{"srt": <cale>}`, sau `{"srt": null, "reason": ...}` dacă nu se vorbește (atunci nu există fișier și scrii în bloc `Subtitrări omise: clipul nu are vorbire`).
    Numai dacă `SUNET_SEPARAT: true`: `"$PY" "$SCRIPTS/exports.py" stems --video "$RUN_DIR/youtube.mp4" --out-dir "$RUN_DIR" --name youtube` (la `kind: short`, `--video "$RUN_DIR/curat.mp4" --name curat`). stdout: `{"voice", "silent_video", "warnings"}`; `warnings` merg pe rândul `Avertismente:`.
+   Exporturile sunt independente unul de altul. Dacă un apel `exports.py` iese cu cod 1, nu oprești comanda: pui pe rândul `Avertismente:` `<fișier> lipsește: <motivul, scurt>` (motivul din `error`) și treci la exportul următor; montajul rămâne. La `stems`, un fișier care n-a mers vine deja în `warnings`, în aceeași formă.
 
 Bloc de întors:
 
@@ -244,6 +247,7 @@ Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales
    `"$PY" "$SCRIPTS/exports.py" reels-srt --transcript "$RUN_DIR/transcript-curat.json" --segments "$RUN_DIR/reels/work/snapped_segments.json" --reels-dir "$RUN_DIR/reels"`
    stdout: `{"srt": [căile short_NN_ig.srt]}`, cu `warnings` pentru reels-urile fără vorbire (fără fișier).
    Numai dacă `SUNET_SEPARAT: true`, pentru fiecare `short_NN_ig.mp4`: `"$PY" "$SCRIPTS/exports.py" stems --video "$RUN_DIR/reels/short_NN_ig.mp4" --out-dir "$RUN_DIR/reels" --name short_NN_ig`.
+   Exporturile sunt independente unul de altul. Dacă un apel `exports.py` iese cu cod 1, nu oprești comanda (de exemplu, când numărul de reels diferă de numărul segmentelor): pui pe rândul `Avertismente:` `<fișier> lipsește: <motivul, scurt>` (la `reels-srt`, fișierul e „subtitrările reels-urilor”; motivul din `error`) și treci la exportul următor; reels-urile rămân. La `reels-srt` și `stems`, un fișier care n-a mers vine deja în `warnings`, în aceeași formă.
 
 Bloc de întors:
 

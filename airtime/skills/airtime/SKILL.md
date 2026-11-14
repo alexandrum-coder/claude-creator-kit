@@ -83,6 +83,8 @@ Agentul scrie la fiecare rulare subtitrările separate: `youtube.srt` (timpii po
 
 Cu fraza „cu sunet separat” la pornire (se combină cu profilul, cu modurile fără publicare și cu „în <dosar>”), agentul scrie și doar vocea, la volumul din videoclip (`youtube-voce.wav`, `reels/short_NN_ig-voce.wav`), și imaginea fără sunet (`youtube-fara-sunet.mp4`, `reels/short_NN_ig-fara-sunet.mp4`), ca muzica să poată fi pusă mai târziu fără să refaci montajul; la un Short, din `curat.mp4` (`curat-voce.wav`, `curat-fara-sunet.mp4`). Notezi `sunet_separat` (`true` sau `false`) în `run.json` și dai agentului, la `monteaza` și la `reels`, linia `SUNET_SEPARAT: <true|false>`. Fișierele noi apar în rezumat și în `raport.md`.
 
+Dacă un export pică, montajul și reels-urile rămân, iar celelalte exporturi se fac totuși. Agentul pune problema pe rândul `Avertismente:`, iar tu îi spui coachului pe un rând ce fișier lipsește și de ce (de exemplu, „youtube-voce.wav lipsește: discul e plin”), apoi mergi mai departe.
+
 ## Fluxul unei rulări (pașii 0-9)
 
 Anunță coachului pașii mari la început, pe o singură linie, apoi mergi pe rând. La fiecare pas lung spune ce se întâmplă și cam cât durează.
@@ -163,7 +165,7 @@ Pentru fiecare element din `calendar.json` cu `status` diferit de `programat`:
 
 ### 9. Raport
 
-Scrie `<RUN_DIR>/raport.md` și arată-l pe scurt coachului: linkurile YouTube (video și Short), lista din Planificator (reel, dată, oră), ce a rămas nefăcut și de ce, calea folderului rulării, fișierele de subtitrări (de urcat de coach în YouTube Studio) și, la „cu sunet separat”, vocea și imaginea fără sunet. Elementele `esuat` sunt pe primul loc, cu ce poate face coachul. Fără secrete.
+Scrie `<RUN_DIR>/raport.md` și arată-l pe scurt coachului: linkurile YouTube (video și Short), lista din Planificator (reel, dată, oră), ce a rămas nefăcut și de ce, calea folderului rulării, fișierele de subtitrări (de urcat de coach în YouTube Studio) și, la „cu sunet separat”, vocea și imaginea fără sunet, plus exporturile care lipsesc, cu motivul. Elementele `esuat` sunt pe primul loc, cu ce poate face coachul. Fără secrete.
 
 ## Dacă ceva pică
 
