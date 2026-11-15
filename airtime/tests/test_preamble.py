@@ -273,3 +273,16 @@ def test_skill_step_by_step_resume_needs_no_phrase():
     assert "fără ca coachul să mai spună fraza" in _step1()
     assert "tot pas cu pas" in _section(text, "Pas cu pas")
     assert "aceeași frază de pornire" not in text
+
+
+# --- function 5, after the feace2e checkpoint (D-12 (8), (9))
+
+def test_skill_past_date_only_for_stopped_runs():
+    step1 = _step1()
+    assert "La o rulare cu `oprit_la`, dacă data aleasă pentru YouTube a trecut" in step1
+    assert "scrii data nouă în `data_youtube` din `run.json`" in step1
+
+
+def test_skill_run_json_keeps_step_by_step_on_resume():
+    step1 = _step1()
+    assert "`pas_cu_pas` (`true` doar la „pas cu pas”), care la reluare rămâne valoarea din `run.json`" in step1
