@@ -239,3 +239,37 @@ def test_skill_step_by_step_resume():
 def test_skill_steps_3_4_6_stop_in_step_by_step():
     for n in (3, 4, 6):
         assert "În modul pas cu pas, te oprești aici (vezi „Pas cu pas”)." in _step(n), n
+
+
+# --- function 5, correction after the b184b80 checkpoint (D-12, addition 13:5x)
+
+def test_skill_step_by_step_short_and_reel_show_curat():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Pas cu pas")
+    assert "la un Short sau la un reel direct, calea `curat.mp4` și durata, fără capitole" in sec
+
+
+def test_skill_step_by_step_kept_on_resume():
+    step1 = _step1()
+    for phrase in ("nu se rescrie cu `false`",
+                   "„Doar montaj” pas cu pas, reluată pentru texte și reels, rămâne pas cu pas",
+                   "faci întâi pașii lipsă de după oprire, cu opriri"):
+        assert phrase in step1, phrase
+
+
+def test_skill_step_by_step_finer_changes():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Pas cu pas")
+    assert "capitolele din descriere" in sec
+    assert "doar în `instagram.json`, fără să randezi din nou" in sec
+
+
+def test_skill_step_by_step_resume_with_past_date():
+    step1 = _step1()
+    assert "data aleasă pentru YouTube a trecut" in step1
+    assert "propui o dată nouă" in step1
+
+
+def test_skill_step_by_step_resume_needs_no_phrase():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "fără ca coachul să mai spună fraza" in _step1()
+    assert "tot pas cu pas" in _section(text, "Pas cu pas")
+    assert "aceeași frază de pornire" not in text
