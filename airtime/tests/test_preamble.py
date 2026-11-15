@@ -198,3 +198,44 @@ def test_skill_no_publish_details_approved_after_checkpoint():
     assert "data propusă implicit" in sec
     assert "publicarea, mai târziu, va cere conectarea" in sec
     assert "„Nimic nu a fost urcat sau programat.”" in sec
+
+
+# --- function 5: "AirTime pas cu pas" (D-12)
+
+def _step(n: int) -> str:
+    flow = _section(SKILL.read_text(encoding="utf-8"), "Fluxul unei rulări (pașii 0-9)")
+    return flow.split("### %d." % n)[1].split("### %d." % (n + 1))[0]
+
+
+def test_skill_description_triggers_step_by_step():
+    front = SKILL.read_text(encoding="utf-8").split("---")[1]
+    assert "AirTime pas cu pas" in front
+
+
+def test_skill_step_by_step_stops():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Pas cu pas")
+    for phrase in ("**după montaj**", "**după textele YouTube**", "**după reels randate**",
+                   "un Short n-are oprirea de la reels", "un reel direct n-are oprirea de la texte",
+                   "„Doar montaj” se termină oricum după montaj", "„Tot gata” are aceleași opriri"):
+        assert phrase in sec, phrase
+
+
+def test_skill_step_by_step_answers():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Pas cu pas")
+    for phrase in ("orice „da” limpede", "„Da” sau „confirm” exact rămân cerute doar la tabelul de la pasul 7",
+                   "apoi te oprești din nou", "tabelul cu tăieturi de la pasul 3",
+                   "`youtube-meta.json`", "`--dry-run`", "alegerea reels-urilor de la pasul 5",
+                   "nu urci nimic", "`oprit_la` (`montaj`, `texte` sau `reels`)"):
+        assert phrase in sec, phrase
+
+
+def test_skill_step_by_step_resume():
+    step1 = _step1()
+    for phrase in ("`oprit_la`", "pornești de la pasul de după oprire", "ștergi `oprit_la`",
+                   "`pas_cu_pas` din `run.json`", "`pas_cu_pas` (`true` doar la „pas cu pas”)"):
+        assert phrase in step1, phrase
+
+
+def test_skill_steps_3_4_6_stop_in_step_by_step():
+    for n in (3, 4, 6):
+        assert "În modul pas cu pas, te oprești aici (vezi „Pas cu pas”)." in _step(n), n
