@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // node render.mjs --props props.json --out-dir DIR
-// props.json: {width, height, fps, colors, intro: {title, channel}, chapters: [{t, text}], lists: [{t, items}]}
+// props.json: {width, height, fps, colors, intro: {title, channel}, chapters: [{t, text}], lists: [{t, items}],
+//              title_pops?: [{t, text, hold?}]}
 // Writes intro.mp4 (H.264), chapter_NN.mov and list_NN.mov (ProRes 4444 with alpha).
 // Prints {intro, overlays: [{file, t}]} on stdout (file names relative to DIR); progress goes to stderr.
 import {readFileSync, mkdirSync} from 'node:fs';
@@ -34,6 +35,8 @@ const jobs = [
   {id: 'Intro', file: 'intro.mp4', props: {...common, durationSec: 4, ...props.intro}, video: true},
   ...(props.chapters ?? []).map((c, i) => ({id: 'ChapterTitle', file: `chapter_${pad(i)}.mov`, props: {...common, text: c.text}, t: c.t})),
   ...(props.lists ?? []).map((l, i) => ({id: 'ListOverlay', file: `list_${pad(i)}.mov`, props: {...common, items: l.items}, t: l.t})),
+  // Montage upgrade, element 1: hard pop-in titles (ADUM #5), only when props ask for them.
+  ...(props.title_pops ?? []).map((p, i) => ({id: 'TitlePop', file: `titlepop_${pad(i)}.mov`, props: {...common, text: p.text, ...(p.hold ? {hold: p.hold} : {})}, t: p.t})),
 ];
 
 const log = (...a) => console.error(...a);

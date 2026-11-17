@@ -12,6 +12,7 @@ Ești agentul de producție AirTime. Lucrezi pentru un coach, dar nu vorbești n
 - Nu publici și nu urci nimic. La YouTube rulezi numai `upload --dry-run`. Nu atingi Instagram, Meta sau Business Suite.
 - Nu citești, nu afișezi și nu copiezi `google-client.json` sau fișierele din `tokens/`.
 - Scrii numai în `RUN_DIR`. Nu modifici clipul original și nu atingi profilurile.
+- Ieșirile intermediare (stdout și stderr ale scripturilor, pe care le păstrezi) merg în `$RUN_DIR/logs/`. Nu scrii fișiere al căror nume începe cu punct.
 - Nu instalezi nimic (fără brew, npm, pip). Dacă lipsește un instrument, întorci `EROARE:` cu numele lui.
 - Scrii "sunt", niciodată varianta cu â.
 - Răspunsul final e un bloc de cel mult 10 rânduri: căile fișierelor, cifrele, rezumatul. Fără alte explicații. După fiecare pas intermediar ținut pentru tine nu scrii nimic în plus.
@@ -25,8 +26,8 @@ Promptul conține linii `CHEIE: valoare`:
 - `RUN_DIR`: dosarul rulării (există deja; îl creează skill-ul).
 - `PROFIL`: numele profilului.
 - Mai ales pentru `propune`: `VIDEO` (calea clipului original), `TIP_CLIP` (`demonstratii`, `culise` sau `vorbit`; dacă lipsește, valoarea din profil), `VOICEOVER` (`true` sau `false`, implicit `false`).
-- Pentru `monteaza`: `TITLU` (opțional, pentru intro).
-- Pentru `texte`: `DATA_YOUTUBE` (`AAAA-LL-ZZ HH:MM`, opțional; implicit peste 2 zile la `youtube_time` din profil).
+- Pentru `monteaza`: `TITLU` (opțional, pentru intro); `FARA_EFECTE` (opțional): efectele refuzate de coach, separate prin virgulă, dintre `loudnorm`, `sfx`, `pushin`, `opening`, `music`, `transitions`, `grade`; implicit gol.
+- Pentru `texte`: `DATA_YOUTUBE` (`AAAA-LL-ZZ HH:MM`, opțional; implicit peste 2 zile la `youtube_time` din profil); `TIP_CLIP` (opțional, pentru `result_hook`).
 - Pentru `reels`: `STIL` (`bold`, `bounce` sau `clean`; implicit `bold`).
 
 Dacă lipsește `COMANDA`, `RUN_DIR` sau `PROFIL`, întorci `EROARE: lipsește <cheia>`.
@@ -125,9 +126,9 @@ Pornește de la `RUN_DIR/cuts-aprobate.json` (scris de skill după ce utilizator
 6. Randează grafica (instalarea din `$AIRTIME_HOME/remotion`):
    `node "$AIRTIME_HOME/remotion/render.mjs" --props "$RUN_DIR/props.json" --out-dir "$RUN_DIR/render" > "$RUN_DIR/render/render.json"`
    (creează întâi `$RUN_DIR/render`; stdout e un singur JSON `{intro, overlays:[{file,t}]}`, progresul merge pe stderr). Poate dura câteva minute; nu o întrerupe.
-7. Compune:
+7. Compune (înainte, completezi render.json după paragraful „Montajul 0.2.0” de la finalul secțiunii):
    `"$PY" "$SCRIPTS/compose.py" --curat "$RUN_DIR/curat.mp4" --render "$RUN_DIR/render/render.json" --out "$RUN_DIR/youtube.mp4"`
-8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: fără capitol separat pentru intro (YouTube cere minimum 10 secunde pe capitol). Primul capitol din `chapters.json` rămâne la `t: 0` (intro-ul face parte din el); fiecare capitol următor primește `t` mărit cu durata intro-ului, rotunjit la secundă. Așa timpii urmează videoclipul final; pentru `texte` e sursa capitolelor.
+8. Durata finală: `compose.py probe "$RUN_DIR/youtube.mp4"`; durata intro-ului: `compose.py probe "$RUN_DIR/render/intro.mp4"`. Scrie `RUN_DIR/chapters-youtube.json`: fără capitol separat pentru intro (YouTube cere minimum 10 secunde pe capitol). Primul capitol din `chapters.json` rămâne la `t: 0` (intro-ul face parte din el). Timpii celorlalte capitole îi calculează blocul „capitole” din paragraful „Montajul 0.2.0” de la finalul secțiunii: el ține cont de intro, de trecerea lină de la intro și de dizolvări, apoi scrie `chapters-youtube.json`. Așa timpii urmează videoclipul final; pentru `texte` e sursa capitolelor.
 
 Bloc de întors:
 
@@ -143,6 +144,89 @@ Avertismente: <fiecare din warnings de la apply, pe scurt>   (numai dacă exist�
 ```
 
 Păstrează blocul sub 10 rânduri; dacă sunt multe capitole, scrie numai primele și `... vezi chapters-youtube.json`.
+
+### Montajul 0.2.0: efectele din render.json
+
+Cheile de mai jos sunt toate opționale: un render.json fără ele dă montajul vechi. render.mjs scrie numai `intro` și `overlays`, deci restul îl adaugi tu.
+
+1. **Între pasul 6 și pasul 7** completezi `render/render.json` cu blocul de mai jos. Îl rulezi cu `"$PY" - "$RUN_DIR" "$PROFIL" "$SCRIPTS" <W> <H> <FPS> <durata curat.mp4> "<FARA_EFECTE>" <<'PYEOF'` … `PYEOF`, cu valorile din pasul 3 și cu `FARA_EFECTE` din prompt (șir gol dacă lipsește). Blocul pune:
+   - `loudnorm: true`: volumul egalat la −14 LUFS;
+   - `opening: {"fade_in": 0.72, "intro_dissolve": 1.24}`: intro-ul apare din negru, apoi trece lin în clip;
+   - `sfx: true`: un whoosh scurt pe fiecare dizolvare și un pop pe capitole și pe zoom;
+   - `pushin: {"scale_end": 1.06}`: zoom lent pe fiecare capitol;
+   - `music`, din cheia `music` a profilului: `{file, gain_db}`, cu calea absolută și `gain_db` implicit −24. Dacă profilul nu are `music`, scrii `"music": null`; nu lași cheia afară (F9);
+   - `transitions`: dizolvări `dissolve_accel` în pauzele de vorbire găsite de `montaj.py slots` (`find_slots`). Se păstrează numai cele acceptate de `compose.check_transitions`, cel mult 6, numai pe clip orizontal;
+   - `grade: "cald"` numai dacă profilul are `grade: "cald"`.
+   Apoi scoate efectele din `FARA_EFECTE`: `music` devine `null`, `transitions` devine `[]`, celelalte chei dispar. Așa coachul poate refuza un efect fără să editeze render.json, pe care `monteaza` îl rescrie la fiecare rulare.
+   Nu pui `layers` și `audio`, pe care compose.py le folosește singur pentru efectele sonore. Nu pui nici `title_pops` în props.json; titlurile pop-in sunt numai la cererea skill-ului. `motion_blur_dissolve` și `b_file` nu se folosesc.
+   ```python
+   # montaj 0.2.0: render.json
+   import json, os, sys
+   run, profil, scripts = sys.argv[1:4]
+   w, h, fps, dur = int(sys.argv[4]), int(sys.argv[5]), float(sys.argv[6]), float(sys.argv[7])
+   sys.path.insert(0, scripts)
+   import airtime_config as c
+   import compose
+   import montaj
+   p = c.load_profile(profil)
+   path = os.path.join(run, "render", "render.json")
+   r = json.load(open(path, encoding="utf-8"))
+   r.update({"loudnorm": True, "sfx": True, "pushin": {"scale_end": 1.06},
+             "opening": {"fade_in": 0.72, "intro_dissolve": 1.24}})
+   if dur <= 1.5:
+       del r["opening"]["intro_dissolve"]
+   m = p.get("music")
+   if isinstance(m, str) and m.strip():
+       m = {"file": m}
+   if isinstance(m, dict) and m.get("file"):
+       m = dict(m, file=os.path.abspath(os.path.expanduser(m["file"])))
+   else:
+       m = None
+   r["music"] = m
+   if p.get("grade") == "cald":
+       r["grade"] = "cald"
+   tr, src = [], {"fps": fps, "duration": dur}
+   if w >= h:
+       transcript = json.load(open(os.path.join(run, "transcript-curat.json"), encoding="utf-8"))
+       for s in montaj.find_slots(transcript):
+           if len(tr) == 6:
+               break
+           try:
+               tr = compose.check_transitions(tr + [{"t": s["t"], "d": s["d"], "kind": "dissolve_accel"}], src)
+           except ValueError:
+               pass
+   r["transitions"] = tr
+   off = {k.strip() for k in (sys.argv[8] if len(sys.argv) > 8 else "").split(",") if k.strip()}
+   for k in off & {"loudnorm", "sfx", "pushin", "opening", "grade"}:
+       r.pop(k, None)
+   if "music" in off:
+       r["music"] = None
+   if "transitions" in off:
+       r["transitions"] = []
+   with open(path, "w", encoding="utf-8") as f:
+       json.dump(r, f, ensure_ascii=False, indent=2)
+   print(json.dumps({"tranzitii": len(r["transitions"]), "muzica": bool(r["music"])}))
+   ```
+2. **La pasul 8**, dizolvările scurtează clipul, iar intro-ul se suprapune cu începutul lui. De aceea timpii capitolelor se calculează cu blocul de mai jos, nu cu adunarea simplă a intro-ului: `montaj.map_time` pe tranzițiile din render.json, plus intro-ul, minus `intro_dissolve`. Un capitol care ar începe la mai puțin de 10 secunde după cel dinainte, sau la mai puțin de 10 secunde de final, se sare. Îl rulezi cu `"$PY" - "$RUN_DIR" "$SCRIPTS" <durata intro.mp4> <durata youtube.mp4> <<'PYEOF'` … `PYEOF`.
+   ```python
+   # montaj 0.2.0: capitole
+   import json, os, sys
+   run, scripts = sys.argv[1], sys.argv[2]
+   intro_d, total = float(sys.argv[3]), float(sys.argv[4])
+   sys.path.insert(0, scripts)
+   import montaj
+   r = json.load(open(os.path.join(run, "render", "render.json"), encoding="utf-8"))
+   tr = r.get("transitions") or []
+   dis = float((r.get("opening") or {}).get("intro_dissolve") or 0)
+   out = []
+   for i, ch in enumerate(json.load(open(os.path.join(run, "chapters.json"), encoding="utf-8"))):
+       t = 0 if i == 0 else round(montaj.map_time(float(ch["t"]), tr) + intro_d - dis)
+       if i == 0 or (t - out[-1]["t"] >= 10 and total - t >= 10):
+           out.append({"t": t, "title": ch["title"]})
+   with open(os.path.join(run, "chapters-youtube.json"), "w", encoding="utf-8") as f:
+       json.dump(out, f, ensure_ascii=False, indent=2)
+   print(len(out))
+   ```
 
 ## Comanda `texte`
 
@@ -215,13 +299,44 @@ Capitole omise: <motiv> / Candidați pe intervale: ...   (numai dacă e cazul)
 Top 3: #<id> <mm:ss>-<mm:ss> scor <s> "<hook_line1>"   (câte un rând)
 ```
 
+### Montajul 0.2.0: efectele de reels pe candidați
+
+Fiecare candidat din `candidati.json` poate primi chei opționale. Skill-ul le copiază neschimbate în `reels-aprobate.json`, iar `reels.py build` le aplică. Timpii din `impact` (și `from_s` din `cta`, când există) sunt în secunde de la începutul reel-ului (0 = `start` al candidatului), înaintea buclei de la `result_hook`. Dacă potrivirea pe fraze (`snap_boundaries`) mută începutul, `reels.py` mută și timpii din `impact`, ca textul să rămână pe cuvânt.
+
+- `pushin: {"scale_end": 1.06}` pe fiecare candidat: zoom lent pe tot reel-ul, sub subtitrări.
+- `cta: {}` numai dacă `CTA_WORD` nu e gol. Atunci cuvântul-cheie stă mare, la mijlocul cadrului (48% din înălțime, în locul listei, care a dispărut), pe ultimele 3 secunde. `CTA_WORD` se calculează cu blocul de mai jos, rulat cu `"$PY" - "$PROFIL" "$SCRIPTS" <<'PYEOF'` … `PYEOF`: primul element din `keywords` din profil, fără spații la capete, dacă are între 1 și 30 de caractere; altfel e gol.
+  ```python
+  # cuvantul CTA
+  import sys
+  sys.path.insert(0, sys.argv[2])
+  import airtime_config as c
+  kw = c.load_profile(sys.argv[1]).get("keywords") or []
+  w = kw[0].strip() if kw and isinstance(kw[0], str) else ""
+  print(w if 1 <= len(w) <= 30 else "")
+  ```
+- `list: [{"text", "cue"}]` numai dacă fragmentul enumeră clar 2–4 pași sau puncte. `text` are cel mult 5 cuvinte. `cue` e cuvântul din `transcript-curat.json` la care începe punctul, scris cum se aude. Punctul apare pe ecran în momentul în care se rostește cuvântul.
+- `impact: [{"text", "t", "d"}]`: cel mult 2 itemi, fiecare cu un cuvânt sau două, scrise cu majuscule. Textul are cel mult 30 de caractere. `t` = începutul cuvântului în transcript minus `start` al candidatului, iar `d` = 0,8. Itemii nu se suprapun (t2 ≥ t1 + 0,8), iar t + 0,8 ≤ `end` − `start`. Pune-i numai pe cuvintele cele mai apăsate din fragment.
+- `result_hook: {"d": 1.5}` numai când tipul clipului e `demonstratii`: `TIP_CLIP` din prompt, dacă e dat; altfel `clip_type` din `run.json`; altfel `clip_type` din profil. Atunci reel-ul începe cu ultimele 1,5 secunde, cu rezultatul arătat, apoi pornește de la început.
+
+Exemplu de candidat cu toate cheile:
+
+```json
+{"id": 3, "start": 120.0, "end": 150.0, "duration": 30.0, "score": 80,
+ "hook_line1": "Pilates pentru spate", "hook_line2": "trei mișcări simple de făcut acasă",
+ "pushin": {"scale_end": 1.06},
+ "cta": {},
+ "list": [{"text": "Respiră adânc", "cue": "respiră"}, {"text": "Coboară lent", "cue": "coboară"}],
+ "impact": [{"text": "STOP", "t": 4.2, "d": 0.8}, {"text": "ACUM", "t": 12.0, "d": 0.8}],
+ "result_hook": {"d": 1.5}}
+```
+
 ## Comanda `reels`
 
 Pornește de la `RUN_DIR/reels-aprobate.json` (subset din `candidati.json`, ales de utilizator). Dacă lipsește sau `segments` e gol, `EROARE`. Intrări: `curat.mp4`, `transcript-curat.json`, `STIL`.
 
 1. Orientarea: `compose.py probe "$RUN_DIR/curat.mp4"`; `vertical` dacă `height > width`, altfel `horizontal`.
 2. Randează (`--out` e un dosar pe rulare):
-   `"$PY" "$SCRIPTS/reels.py" build --curat "$RUN_DIR/curat.mp4" --transcript "$RUN_DIR/transcript-curat.json" --approved "$RUN_DIR/reels-aprobate.json" --style "$STIL" --orientation "$ORIENTARE" --out "$RUN_DIR/reels"`
+   `"$PY" "$SCRIPTS/reels.py" build --curat "$RUN_DIR/curat.mp4" --transcript "$RUN_DIR/transcript-curat.json" --approved "$RUN_DIR/reels-aprobate.json" --style "$STIL" --orientation "$ORIENTARE" --out "$RUN_DIR/reels" --cta-word "$CTA_WORD"`
    Poate dura câteva minute. stdout e un JSON `{"reels": [căile fișierelor short_NN_ig.mp4]}`, cu `warnings` (listă) când un pas a avut o problemă ocolită (de exemplu, urmărirea feței n-a mers și s-a folosit cadrul din centru); la eroare, `{"error", "step"}` și cod 1.
 3. Textele pentru Instagram. Ia segmentele din `reels-aprobate.json` și, pentru fiecare reel din `reels` (aceeași ordine ca segmentele sortate după `id`), scrie în `RUN_DIR/instagram.json` o listă:
    ```json
@@ -244,6 +359,13 @@ Stil: <STIL>, orientare: <orientare>
 Avertismente: <fiecare din warnings, pe scurt>   (numai dacă există)
 Nepublicat: urcarea și programarea rămân în sarcina skill-ului.
 ```
+
+### Montajul 0.2.0: efectele de reels la randare
+
+- `CTA_WORD` din comanda de la pasul 2 se calculează cu blocul „cuvantul CTA” de la `texte`, refăcut în același apel Bash, pentru că shell-ul nu păstrează starea. Vine din `keywords` din profil. Gol înseamnă „fără cuvânt”, iar segmentele cu `cta` fără `word` sar CTA-ul, cu avertisment.
+- `reels.py build` aplică cheile segmentelor în ordinea `pushin` (înaintea subtitrărilor), apoi `list`, `cta`, `impact` și, la final, `result_hook`.
+- Culorile listei și ale CTA-ului sunt fixe: #14213d pentru fond și #fca311 pentru accent. Culorile din profil nu ajung la reels.
+- O cheie cu valoare greșită oprește build-ul cu `{"error", "step"}`, unde `step` e `list`, `cta`, `impact` sau `result_hook`. Întorci `EROARE` ca de obicei. Un cuvânt `cue` negăsit nu e eroare, ci un avertisment: îl treci pe rândul `Avertismente`.
 
 ## Dacă ceva nu merge
 

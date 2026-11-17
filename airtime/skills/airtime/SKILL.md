@@ -103,9 +103,18 @@ Arată un tabel din `cuts-propuse.json`: Nr, Moment (`mm:ss`), Durată (secunde)
 
 Coachul aprobă tot, scoate tăieturi sau le mută (`start`/`end`). Poate și să nu taie nimic. Scrie `<RUN_DIR>/cuts-aprobate.json` (`{"cuts": [...]}`, cu `id`, `start`, `end`, `reason`, `text`; listă goală dacă nu se taie nimic), apoi cheamă agentul cu `COMANDA: monteaza` (aceleași RUN_DIR și PROFIL, `VIDEO`, `TITLU` opțional din intro-ul coachului). Arată rezumatul: durata înainte și după, câte tăieturi, capitolele. Dacă blocul are `Avertismente`, spune-le coachului în cuvinte simple, înainte de tabelul de confirmare (de exemplu, că ffmpeg nu poate converti culorile HDR și culorile pot ieși spălate). Dacă răspunsul începe cu `EROARE:`, urmează regula de mai sus. Dacă blocul spune "Capitole: doar n" (n sub 3) sau "Capitole omise", spune-i pe un rând că videoclipul urcă fără capitole (YouTube cere cel puțin 3) și mergi mai departe.
 
+De la versiunea 0.2.0, montajul are efecte puse de agent. Spune-i coachului pe scurt ce va vedea și auzi:
+- intro-ul apare din negru și trece lin în clip;
+- în pauzele lungi de vorbire, imaginea se dizolvă scurt în continuarea clipului, cu un whoosh discret (numai la clipurile orizontale);
+- pe fiecare capitol, imaginea face un zoom lent;
+- dacă profilul are muzică, ea merge încet sub voce;
+- volumul e egalat ca la YouTube;
+- culorile primesc o tentă caldă, dacă profilul o cere.
+Dacă nu vrea un efect, chemi din nou `monteaza` cu `FARA_EFECTE: <chei>` (de exemplu `music,sfx`; cheile sunt `loudnorm`, `sfx`, `pushin`, `opening`, `music`, `transitions`, `grade`). Nu editezi render.json de mână: `monteaza` îl rescrie la fiecare rulare. Dizolvările scurtează puțin clipul, iar capitolele se mută singure.
+
 ### 4. Texte YouTube
 
-`kind: lung`: agentul cu `COMANDA: texte`, `DATA_YOUTUBE: AAAA-LL-ZZ HH:MM`. Scrie `youtube-meta.json` (validat cu `upload --dry-run`) și `candidati.json`. Regulile de text sunt în `references/texte.md`, iar restul vin din `social-seo`.
+`kind: lung`: agentul cu `COMANDA: texte`, `DATA_YOUTUBE: AAAA-LL-ZZ HH:MM`, `TIP_CLIP` (din `run.json`, pentru `result_hook`). Scrie `youtube-meta.json` (validat cu `upload --dry-run`) și `candidati.json`. Regulile de text sunt în `references/texte.md`, iar restul vin din `social-seo`.
 
 `kind: short`: nu chemi `texte` (cere capitole). Scrii tu `youtube-meta.json` fără capitole, după secțiunea Shorts din `references/texte.md` (cu `#Shorts` în titlu), apoi validezi cu `YT upload --dry-run --short --file "<RUN_DIR>/curat.mp4" --meta "<RUN_DIR>/youtube-meta.json" --publish-at "<data>" --run-dir "<RUN_DIR>"`. Un Short folosește `curat.mp4` (fără intro) și nu are reels.
 
@@ -114,6 +123,20 @@ Coachul aprobă tot, scoate tăieturi sau le mută (`start`/`end`). Poate și s�
 ### 5. Alegerea reels-urilor
 
 Dacă blocul de la `texte` spune "Candidați pe intervale", spune-i coachului întâi că clipul nu are vorbire, deci reels-urile sunt bucăți la rând de câte 30 de secunde, fără subtitrări, și că poate alege câteva sau poate sări peste reels. Din `candidati.json` arată un tabel: Nr, Moment (`mm:ss`-`mm:ss`), Durată, Scor, Cârlig (`hook_line1` + `hook_line2`). Coachul alege 3-5 candidați (minimum 3, dacă sunt destui) și stilul subtitrărilor: `bold`, `bounce` sau `clean` (explică în câteva cuvinte; implicit `bold`). Scrie `reels-aprobate.json` ca subset din `candidati.json` (aceeași formă, `style` pus pe stilul ales). La `kind: reel`, scrii un singur segment peste tot `curat.mp4`, în forma din `candidati.json`: `{"id": 1, "start": 0, "end": <durata curat.mp4>, "duration": <aceeași>, "score": 100, "hook_line1": "<cel mult 6 cuvinte, cu un cuvânt-cheie din keywords din profil>", "hook_line2": "<cel mult 8 cuvinte>"}` (cârligele le scrii tu din transcript-curat.json, după `references/texte.md`; fără vorbire, din `keywords`), plus `style`, `platform: "instagram"`, `content_type: "talking-head"`, ca `reels.py build` să randeze textul de cârlig.
+
+De la versiunea 0.2.0, candidații pot avea efecte (`pushin`, `list`, `cta`, `impact`, `result_hook`). Tabelul primește o coloană în plus, „Efecte”, spusă în cuvinte simple:
+- zoom lent;
+- listă de pași care apar pe rând;
+- cuvântul-cheie mare pe final;
+- cuvinte mari care inversează culorile;
+- începe cu rezultatul.
+Le copiezi neschimbate din `candidati.json` în `reels-aprobate.json`. Dacă coachul nu vrea un efect la un reel, scoți doar cheia aceea.
+
+La `kind: reel`, segmentul unic îl scrii tu, deci adaugi și cheile lui:
+- `pushin: {"scale_end": 1.06}`;
+- `cta: {}`, dacă profilul are un prim cuvânt-cheie de 1–30 de caractere;
+- `result_hook: {"d": 1.5}`, dacă tipul clipului e `demonstratii`.
+Nu pui `list` sau `impact`, care cer timpii cuvintelor.
 
 ### 6. Reels și descrieri
 

@@ -220,7 +220,7 @@ def export_reels(root, render_dir, out_dir, expected: int) -> list:
 
 # ----------------------------------------------------------------- build
 
-def build(curat, transcript_curat, approved, style, out_dir, orientation, warnings=None) -> list:
+def build(curat, transcript_curat, approved, style, out_dir, orientation, warnings=None, cta_word=None) -> list:
     if warnings is None:
         warnings = []
     if style not in STYLES:
@@ -249,10 +249,38 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation, warnin
         # no speech: snap_boundaries.py exits 1 without word timestamps; keep the approved times
         snapped.write_text(Path(approved).read_text(encoding="utf-8"), encoding="utf-8")
     segments = json.loads(snapped.read_text(encoding="utf-8"))["segments"]
+    # D-86: impact times are counted from the approved start; follow the start snap_boundaries moved
+    if any(seg.get("impact") is not None for seg in segments):
+        import reels_fx
+        starts = {int(s.get("id", i)): s.get("start")
+                  for i, s in enumerate(json.loads(Path(approved).read_text(encoding="utf-8"))["segments"], 1)}
+        for i, seg in enumerate(segments, 1):
+            sid = int(seg.get("id", i))
+            if seg.get("impact") is None or starts.get(sid) is None:
+                continue
+            delta = float(starts[sid]) - float(seg["start"])
+            seg["impact"] = reels_fx.shift_impact(seg["impact"], delta, float(seg["end"]) - float(seg["start"]),
+                                                  warnings, sid)
+            if seg["impact"] == [] and delta:
+                del seg["impact"]
 
     for i, seg in enumerate(segments, 1):
         sid = seg.get("id", i)
         clip = clips_dir / f"clip_{int(sid):02d}.mp4"
+        if seg.get("pushin") is not None:
+            # element 2 (PLAN, D-39): cut into clips_src/, zoom into clips/; reels.py globs clips/clip_*.mp4
+            import montaj
+            import reels_fx
+            try:
+                scale = montaj.pushin_scale(seg["pushin"])
+            except ValueError as e:
+                raise StepError("pushin", f"segmentul {sid}: {e}")
+            raw = work / "clips_src" / clip.name
+            raw.parent.mkdir(parents=True, exist_ok=True)
+            run_step("extract_clip", ["ffmpeg", "-y", "-ss", f"{float(seg['start']):.3f}",
+                                      "-to", f"{float(seg['end']):.3f}", "-i", curat, "-c", "copy", raw])
+            run_step("pushin", reels_fx.pushin_args(raw, clip, scale, reels_fx.probe(raw, run_step)))
+            continue
         run_step("extract_clip", ["ffmpeg", "-y", "-ss", f"{float(seg['start']):.3f}",
                                   "-to", f"{float(seg['end']):.3f}", "-i", curat,
                                   "-c", "copy", clip])
@@ -280,6 +308,61 @@ def build(curat, transcript_curat, approved, style, out_dir, orientation, warnin
     if len(rendered) != len(segments):
         raise StepError("render", f"expected {len(segments)} rendered reels, found {len(rendered)}")
 
+    listed = [(i, seg) for i, seg in enumerate(segments, 1) if seg.get("list") is not None]
+    with_cta = [(i, seg) for i, seg in enumerate(segments, 1) if seg.get("cta") is not None]
+    with_impact = [(i, seg) for i, seg in enumerate(segments, 1) if seg.get("impact") is not None]
+    with_hook = [(i, seg) for i, seg in enumerate(segments, 1) if seg.get("result_hook") is not None]
+    if listed or with_cta or with_impact or with_hook:
+        import airtime_config
+        import reels_fx
+        remotion_dir = airtime_config.home() / "remotion"
+        # element 4 (PLAN, D-52): the CTA word of each segment, decided before the list gives way to it
+        cta_words = {}
+        for i, seg in with_cta:
+            sid = int(seg.get("id", i))
+            try:
+                word = reels_fx.resolve_cta_word(seg["cta"], cta_word, warnings, sid)
+            except ValueError as e:
+                raise StepError("cta", f"segmentul {sid}: {e}")
+            if word is not None:
+                cta_words[sid] = word
+        # element 3 (PLAN, D-48): numbered list over short_NN.mp4, between render and export
+        words = [w for s in json.loads(Path(transcript_curat).read_text(encoding="utf-8")).get("segments") or []
+                 for w in s.get("words") or []] if listed else []
+        for i, seg in listed:
+            sid = int(seg.get("id", i))
+            try:
+                reels_fx.apply_list(seg, sid, render_dir / f"short_{sid:02d}.mp4", words, work, run_step,
+                                    warnings, remotion_dir, cta=seg["cta"] if sid in cta_words else None)
+            except reels_fx.CtaError as e:
+                raise StepError("cta", f"segmentul {sid}: {e}")
+            except ValueError as e:
+                raise StepError("list", f"segmentul {sid}: {e}")
+        # element 4 (PLAN, D-54): the CTA keyword from from_s to the last frame
+        for i, seg in with_cta:
+            sid = int(seg.get("id", i))
+            if sid not in cta_words:
+                continue
+            try:
+                reels_fx.apply_cta(seg, sid, render_dir / f"short_{sid:02d}.mp4", cta_words[sid], work, run_step,
+                                   remotion_dir)
+            except ValueError as e:
+                raise StepError("cta", f"segmentul {sid}: {e}")
+        # element 5 (PLAN, D-62, D-63): impact captions, a difference blend after the list and the CTA
+        for i, seg in with_impact:
+            sid = int(seg.get("id", i))
+            try:
+                reels_fx.apply_impact(seg, sid, render_dir / f"short_{sid:02d}.mp4", work, run_step, remotion_dir)
+            except ValueError as e:
+                raise StepError("impact", f"segmentul {sid}: {e}")
+        # element 7 (PLAN, D-67, D-70): the result hook is the last pass, so the reel opens on its finished ending
+        for i, seg in with_hook:
+            sid = int(seg.get("id", i))
+            try:
+                reels_fx.apply_hook(seg, sid, render_dir / f"short_{sid:02d}.mp4", work, run_step)
+            except ValueError as e:
+                raise StepError("result_hook", f"segmentul {sid}: {e}")
+
     return export_reels(root, render_dir, out_dir, len(segments))
 
 
@@ -300,6 +383,8 @@ def main(argv=None) -> int:
     b.add_argument("--style", choices=STYLES, default="bold")
     b.add_argument("--orientation", choices=ORIENTATIONS, default="horizontal")
     b.add_argument("--out", required=True)
+    b.add_argument("--cta-word", default=None,
+                   help="CTA word for segments whose cta has no word (the first profile keyword)")
     args = p.parse_args(argv)
     try:
         if args.cmd == "transcribe":
@@ -307,7 +392,7 @@ def main(argv=None) -> int:
         else:
             warnings = []
             paths = build(args.curat, args.transcript, args.approved, args.style,
-                          args.out, args.orientation, warnings=warnings)
+                          args.out, args.orientation, warnings=warnings, cta_word=args.cta_word)
             res = {"reels": [str(x) for x in paths]}
             if warnings:
                 res["warnings"] = warnings
