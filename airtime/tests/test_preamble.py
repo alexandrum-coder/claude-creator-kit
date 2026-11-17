@@ -286,3 +286,109 @@ def test_skill_past_date_only_for_stopped_runs():
 def test_skill_run_json_keeps_step_by_step_on_resume():
     step1 = _step1()
     assert "`pas_cu_pas` (`true` doar la „pas cu pas”), care la reluare rămâne valoarea din `run.json`" in step1
+
+
+# --- function 6: "AirTime doar reels", the short route (D-13)
+
+CALENDAR = PLUGIN / "skills" / "airtime" / "references" / "calendar.md"
+
+
+def _agent_section(heading: str) -> str:
+    text = AGENT.read_text(encoding="utf-8")
+    m = re.search(r"^## %s\n(.*?)(?=^## |\Z)" % re.escape(heading), text, flags=re.S | re.M)
+    assert m, "no section %r in airtime.md" % heading
+    return m.group(1)
+
+
+def test_skill_description_triggers_only_reels():
+    front = SKILL.read_text(encoding="utf-8").split("---")[1]
+    assert "AirTime doar reels" in front
+
+
+def test_skill_only_reels_start():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    for phrase in ("„doar reels”", "„Vrei și videoclip YouTube sau doar reels?”", "`kind: lung`",
+                   "Nu o pui la „Doar montaj”", "nici la reluare"):
+        assert phrase in sec, phrase
+
+
+def test_skill_only_reels_conflicts_and_short_vertical():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    assert "„doar reels” și „doar montaj” se contrazic" in sec
+    assert "întrebi care dintre ele" in sec
+    assert "clip vertical de cel mult 180 de secunde, „doar reels” nu schimbă nimic" in sec
+
+
+def test_skill_only_reels_route():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    for phrase in ("tăieturile rămân ca la pasul 3", "`DOAR_REELS: true`", "doar `curat.mp4`",
+                   "fără intro, fără capitole, fără `youtube.mp4`", "fără `youtube-meta.json`",
+                   "`COMANDA: candidati`"):
+        assert phrase in sec, phrase
+
+
+def test_skill_only_reels_publishing_and_combinations():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    for phrase in ("prima zi liberă (nu mai devreme de poimâine) pentru reel-ul 1",
+                   "câte un reel pe zi, la `reels_time`", "Shorts",
+                   "„fără publicare”", "„pas cu pas”", "„în <dosar>”", "„cu sunet separat”",
+                   "după `curat.mp4` și după reels, fără oprirea de la texte",
+                   "`doar_reels`", "nu face videoclipul YouTube"):
+        assert phrase in sec, phrase
+
+
+def test_skill_step0_youtube_only_needed_with_shorts():
+    step0 = _section(SKILL.read_text(encoding="utf-8"), "Fluxul unei rulări (pașii 0-9)").split("### 1.")[0]
+    assert "Pe ruta scurtă („Doar reels”), YouTube neconectat oprește lucrul numai dacă `shorts` e pornit în profil." in step0
+
+
+def test_skill_step1_asks_and_records_only_reels():
+    step1 = _step1()
+    assert "„Vrei și videoclip YouTube sau doar reels?”" in step1
+    assert "`doar_reels` (`true` doar pe ruta scurtă), care la reluare rămâne valoarea din `run.json`" in step1
+    assert "La o rulare cu `doar_reels`, lipsa `youtube.mp4` și a `youtube-meta.json` nu e un pas lipsă" in step1
+
+
+def test_skill_step3_only_reels_montaj():
+    assert "Pe ruta scurtă dai agentului și `DOAR_REELS: true`" in _step(3)
+
+
+def test_skill_step4_only_reels_uses_candidati():
+    step4 = _step(4)
+    assert "Pe ruta scurtă (`doar_reels`) nu chemi `texte`" in step4
+    assert "`COMANDA: candidati`" in step4
+
+
+def test_calendar_only_reels_dates():
+    cal = CALENDAR.read_text(encoding="utf-8")
+    assert "Pe ruta scurtă („Doar reels”), fără videoclip YouTube: reel-ul 1 în ziua aleasă, apoi câte unul pe zi, la `reels_time`." in cal
+
+
+def test_agent_lists_candidati_command():
+    text = AGENT.read_text(encoding="utf-8")
+    front = text.split("---")[1]
+    assert "candidati" in front
+    assert "- `COMANDA`: `propune`, `monteaza`, `texte`, `candidati` sau `reels`." in text
+    assert "- Pentru `monteaza`: `TITLU` (opțional, pentru intro) și `DOAR_REELS`" in text
+
+
+def test_agent_monteaza_only_reels_stops_after_curat():
+    sec = _agent_section("Comanda `monteaza`")
+    assert "Cu `DOAR_REELS: true` te oprești după pasul 3" in sec
+    assert "MONTEAZA gata (doar reels)" in sec
+
+
+def test_agent_candidati_command():
+    sec = _agent_section("Comanda `candidati`")
+    for phrase in ("`curat.mp4`", "`transcript-curat.json`", "`candidati.json`",
+                   "fără `youtube.mp4` și fără capitole", "aceleași reguli ca la pasul 4 din `texte`",
+                   "CANDIDATI gata"):
+        assert phrase in sec, phrase
+
+
+def test_agent_error_rule_unchanged():
+    # D-13 (d): regression guard, the old rule already covers the new command
+    text = AGENT.read_text(encoding="utf-8")
+    assert ("- Dacă un script iese cu cod diferit de 0, oprești, nu improvizezi alt drum. Întorci `EROARE: <pas> - "
+            "<mesajul scriptului, scurt>`. Excepție: exporturile de la sfârșitul lui `monteaza` și `reels` "
+            "(`exports.py`); acolo montajul și reels-urile rămân, iar problema merge pe rândul `Avertismente:`.") in text

@@ -31,6 +31,7 @@ O listă de obiecte:
 
 - YouTube: în ziua aleasă de coach, la `youtube_time` din profil.
 - Reel-ul numărul N: în ziua aleasă + N zile, la `reels_time`. Câte un reel pe zi.
+- Pe ruta scurtă („Doar reels”), fără videoclip YouTube: reel-ul 1 în ziua aleasă, apoi câte unul pe zi, la `reels_time`.
 - Dacă Shorts e pornit, fiecare reel are și un element `shorts` cu același fișier, aceeași zi și aceeași oră, titlu cu `#Shorts`.
 - Un Short (clip vertical de cel mult 3 minute ales ca Short) intră ca `shorts`, la `youtube_time`.
 - Coachul poate muta orice dată. Orice mutare reafișează tabelul.
