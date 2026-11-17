@@ -22,6 +22,15 @@ import sys
 import time
 
 SAMPLE_RATE = 16000
+# F-1 (D-93): Whisper invents text on silence ("Thanks for watching!", a repeated sentence). Such a segment is
+# both likely non-speech and decoded with low confidence; real speech measured 0.608 / -0.314 at worst.
+NO_SPEECH_MAX = 0.8
+LOGPROB_MIN = -0.5
+
+
+def keep_segment(no_speech_prob: float, avg_logprob: float) -> bool:
+    """False for a likely hallucination: no_speech_prob > 0.8 and avg_logprob < -0.5 (both strict)."""
+    return not (no_speech_prob > NO_SPEECH_MAX and avg_logprob < LOGPROB_MIN)
 
 
 def decode_audio(path: str):
@@ -57,8 +66,12 @@ def main() -> int:
     segs, info = model.transcribe(audio, language=a.language, beam_size=5, word_timestamps=True,
                                   vad_filter=True,
                                   vad_parameters=dict(min_silence_duration_ms=500, speech_pad_ms=200))
-    segments, captions = [], []
+    segments, captions, dropped = [], [], []
     for s in segs:
+        if not keep_segment(s.no_speech_prob, s.avg_logprob):
+            dropped.append({"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip(),
+                            "no_speech_prob": round(s.no_speech_prob, 3), "avg_logprob": round(s.avg_logprob, 3)})
+            continue
         d = {"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip(), "words": []}
         for w in s.words or []:
             d["words"].append({"word": w.word.strip(), "start": round(w.start, 3), "end": round(w.end, 3)})
@@ -77,6 +90,7 @@ def main() -> int:
         "transcription_time_sec": round(time.time() - t0, 1),
         "segments": segments,
         "captions": captions,
+        "dropped_segments": dropped,
     }
     with open(a.output, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
