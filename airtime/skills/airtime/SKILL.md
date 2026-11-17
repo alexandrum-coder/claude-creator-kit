@@ -185,7 +185,7 @@ Cheamă agentul cu `COMANDA: reels`, `STIL: <stilul>` și `SUNET_SEPARAT` din `r
 
 ### 7. Tabelul de confirmare
 
-Construiește `calendar.json` (forma și regulile de stare în `references/calendar.md`). Calendarul implicit: YouTube în ziua aleasă, la `youtube_time`; reel-ul N în ziua aleasă + N, la `reels_time`; un Short direct la `youtube_time`. Dacă Shorts e pornit, fiecare reel aprobat primește și un al doilea element `shorts`, cu același fișier, aceeași zi și aceeași oră ca elementul lui Instagram, și titlu cu `#Shorts` (scrii tu `<RUN_DIR>/short-NN-meta.json`, fără capitole, după secțiunea Shorts din `references/texte.md`, și validezi cu `YT upload --dry-run --short`). Elementele `shorts` apar în același tabel.
+Construiește `calendar.json` (forma și regulile de stare în `references/calendar.md`). Calendarul implicit: YouTube în ziua aleasă, la `youtube_time`; reel-ul N în ziua aleasă + N, la `reels_time`; pe ruta scurtă („Doar reels”), reel-ul 1 e chiar în ziua aleasă (vezi „Doar reels” și `references/calendar.md`), apoi câte unul pe zi; un Short direct la `youtube_time`. Dacă Shorts e pornit, fiecare reel aprobat primește și un al doilea element `shorts`, cu același fișier, aceeași zi și aceeași oră ca elementul lui Instagram, și titlu cu `#Shorts` (scrii tu `<RUN_DIR>/short-NN-meta.json`, fără capitole, după secțiunea Shorts din `references/texte.md`, și validezi cu `YT upload --dry-run --short`). Elementele `shorts` apar în același tabel.
 
 Arată UN singur tabel cu toate elementele, coloanele exact așa:
 

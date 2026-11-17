@@ -392,3 +392,29 @@ def test_agent_error_rule_unchanged():
     assert ("- Dacă un script iese cu cod diferit de 0, oprești, nu improvizezi alt drum. Întorci `EROARE: <pas> - "
             "<mesajul scriptului, scurt>`. Excepție: exporturile de la sfârșitul lui `monteaza` și `reels` "
             "(`exports.py`); acolo montajul și reels-urile rămân, iar problema merge pe rândul `Avertismente:`.") in text
+
+
+# --- function 6, after the 0e20c45 checkpoint (D-13 (j), (k))
+
+def test_skill_step7_only_reels_first_reel_on_chosen_day():
+    assert ("pe ruta scurtă („Doar reels”), reel-ul 1 e chiar în ziua aleasă "
+            "(vezi „Doar reels” și `references/calendar.md`)") in _step(7)
+
+
+def test_skill_only_reels_no_day_question_without_publishing():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    assert "Nu o întrebi în modurile fără publicare." in sec
+
+
+def test_skill_step1_first_reel_day_replaces_question_4():
+    assert "Pe ruta scurtă, în locul întrebării 4, propui ziua primului reel." in _step1()
+
+
+def test_skill_only_reels_also_shorts():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Doar reels")
+    assert "și ca Shorts dacă `shorts` e pornit în profil" in sec
+
+
+def test_agent_monteaza_only_reels_skips_youtube_outputs():
+    sec = _agent_section("Comanda `monteaza`")
+    assert "fără `chapters-youtube.json` și fără exporturile de la pasul 9" in sec
