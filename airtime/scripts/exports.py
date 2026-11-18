@@ -159,20 +159,55 @@ def _has_audio(video: Path) -> bool:
     return bool(out.strip())
 
 
-def stems(video, out_dir, name) -> dict:
+def _probe_audio(path: Path) -> tuple[float, int]:
+    """(duration of the file, sample rate of its first audio stream or 0)."""
+    out = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                     "stream=codec_type,sample_rate:format=duration", "-of", "json", str(path)],
+                                    check=True, capture_output=True, text=True).stdout)
+    rate = next((int(s["sample_rate"]) for s in out.get("streams") or []
+                 if s.get("codec_type") == "audio" and s.get("sample_rate")), 0)
+    return float((out.get("format") or {}).get("duration") or 0), rate
+
+
+def _voice_args(source: Path, voice: Path, start=None, end=None, intro=None) -> list:
+    """ffmpeg arguments for the voice file. Without options: the source's sound as it is.
+
+    start/end: only that stretch (a reel). intro: the intro's sound first, as in youtube.mp4
+    (silence if the intro has none), then the source's sound (D-14 (20))."""
+    if intro is not None:
+        intro = Path(intro)
+        dur, irate = _probe_audio(intro)
+        rate = _probe_audio(source)[1] or irate or 48000
+        fmt = "aresample=%d,aformat=sample_fmts=fltp:channel_layouts=stereo" % rate
+        head = ("[0:a]%s,atrim=0:%.6f[i]" % (fmt, dur) if irate
+                else "anullsrc=r=%d:cl=stereo,atrim=0:%.6f[i]" % (rate, dur))
+        graph = "%s;[1:a]%s[v];[i][v]concat=n=2:v=0:a=1[a]" % (head, fmt)
+        return ["-i", intro, "-i", source, "-filter_complex", graph, "-map", "[a]", "-c:a", "pcm_s16le", voice]
+    window = []
+    if start is not None:
+        window += ["-ss", "%.3f" % float(start)]
+    if end is not None:
+        window += ["-to", "%.3f" % float(end)]
+    return window + ["-i", source, "-vn", "-c:a", "pcm_s16le", voice]
+
+
+def stems(video, out_dir, name, voice_from=None, start=None, end=None, intro=None) -> dict:
     """Voice exactly as in the video (no filter) and the picture without sound (stream copy).
 
+    With B-roll the voice comes from `voice_from` (the cut clip without B-roll), so it has no
+    B-roll sound; the picture still comes from `video` (D-14 (17)).
     The two files are independent: if one fails, the other is still made (D-11, point 5).
     """
     video, out_dir = Path(video), Path(out_dir)
+    source = Path(voice_from) if voice_from else video
     out_dir.mkdir(parents=True, exist_ok=True)
     voice = out_dir / ("%s-voce.wav" % name)
     silent = out_dir / ("%s-fara-sunet.mp4" % name)
     warnings = []
-    if _has_audio(video):
-        voice_path = _make(voice, ["-i", video, "-vn", "-c:a", "pcm_s16le", voice], warnings)
+    if _has_audio(source):
+        voice_path = _make(voice, _voice_args(source, voice, start, end, intro), warnings)
     else:
-        warnings.append("%s nu are sunet; nu există fișier doar cu vocea." % video.name)
+        warnings.append("%s nu are sunet; nu există fișier doar cu vocea." % source.name)
         voice_path = None
     silent_path = _make(silent, ["-i", video, "-an", "-c:v", "copy", "-movflags", "+faststart", silent],
                         warnings)
@@ -226,6 +261,10 @@ def main(argv=None) -> int:
     p.add_argument("--video", required=True)
     p.add_argument("--out-dir", required=True)
     p.add_argument("--name", required=True)
+    p.add_argument("--voice-from", help="vocea din acest fișier (clipul tăiat fără B-roll)")
+    p.add_argument("--start", type=float)
+    p.add_argument("--end", type=float)
+    p.add_argument("--intro", help="sunetul intro-ului pus înaintea vocii (videoclipul YouTube)")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "srt":
@@ -238,7 +277,7 @@ def main(argv=None) -> int:
         elif a.cmd == "reels-srt":
             _emit(reels_srt(a.transcript, a.segments, a.reels_dir))
         else:
-            _emit(stems(a.video, a.out_dir, a.name))
+            _emit(stems(a.video, a.out_dir, a.name, a.voice_from, a.start, a.end, a.intro))
     except subprocess.CalledProcessError as e:
         _emit({"error": (e.stderr or str(e))[-800:], "step": a.cmd})
         return 1

@@ -368,7 +368,7 @@ def test_agent_lists_candidati_command():
     text = AGENT.read_text(encoding="utf-8")
     front = text.split("---")[1]
     assert "candidati" in front
-    assert "- `COMANDA`: `propune`, `monteaza`, `texte`, `candidati` sau `reels`." in text
+    assert "- `COMANDA`: `propune`, `broll`, `monteaza`, `texte`, `candidati` sau `reels`." in text
     assert "- Pentru `monteaza`: `TITLU` (opțional, pentru intro) și `DOAR_REELS`" in text
 
 
@@ -418,3 +418,85 @@ def test_skill_only_reels_also_shorts():
 def test_agent_monteaza_only_reels_skips_youtube_outputs():
     sec = _agent_section("Comanda `monteaza`")
     assert "fără `chapters-youtube.json` și fără exporturile de la pasul 9" in sec
+
+
+# --- function 1, B-roll (D-14)
+
+def test_skill_description_triggers_broll():
+    front = SKILL.read_text(encoding="utf-8").split("---")[1]
+    assert "cu B-roll din <dosar>" in front
+
+
+def test_skill_broll_section_start_and_table():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "B-roll")
+    for phrase in ("„cu B-roll din <dosar>”", "„Ai și B-roll?”", "cel mai lung clip cu sunet",
+                   "Fără aprobare nu se pune niciun B-roll", "`broll-aprobat.json`", "`broll_dir`",
+                   "volumul", "o cincime", "Momentul", "Cuvintele spuse", "Imaginea"):
+        assert phrase in sec, phrase
+
+
+def test_skill_broll_section_rules():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "B-roll")
+    for phrase in ("cel puțin 15 s", "de la sfârșitul unui B-roll până la începutul următorului",
+                   "primele 5 s", "o singură dată", "sub 3 s", "peste locurile tăiate",
+                   "clip vertical de cel mult 180 de secunde", "în videoclipul YouTube și în reels"):
+        assert phrase in sec, phrase
+
+
+def test_skill_broll_section_combinations_and_resume():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "B-roll")
+    for phrase in ("„fără publicare”", "„doar montaj”", "„doar reels”", "„pas cu pas”", "„în <dosar>”",
+                   "„cu sunet separat”", "tabelul B-roll e el însuși o oprire",
+                   "la reluare nu le mai ceri", "`curat-fara-broll.mp4`"):
+        assert phrase in sec, phrase
+
+
+def test_skill_step1_question_7_broll():
+    step1 = _step1()
+    assert "7. „Ai și B-roll?”" in step1
+    assert "`broll_dir`" in step1
+
+
+def test_skill_step3_broll_table_before_montaj():
+    step3 = _step(3)
+    assert "`COMANDA: broll`" in step3
+    assert "`BROLL_DIR`" in step3
+    assert step3.index("`COMANDA: broll`") < step3.index("`COMANDA: monteaza`")
+    assert "`broll-aprobat.json`" in step3
+
+
+def test_skill_step_by_step_counts_the_broll_table():
+    sec = _section(SKILL.read_text(encoding="utf-8"), "Pas cu pas")
+    assert "tabelul B-roll (pasul 3)" in sec
+
+
+def test_agent_broll_command():
+    sec = _agent_section("Comanda `broll`")
+    for phrase in ('"$PY" "$SCRIPTS/broll.py" cadre --dir "$BROLL_DIR" --frames-dir "$RUN_DIR/broll-cadre" '
+                   '--out "$RUN_DIR/broll-clipuri.json" --exclude "$VIDEO"',
+                   '"$PY" "$SCRIPTS/broll.py" verifica --broll "$RUN_DIR/broll-propus.json" '
+                   '--cuts "$RUN_DIR/cuts-aprobate.json" --video "$VIDEO" --dir "$BROLL_DIR"',
+                   "3 imagini", "`t0` pe clipul original", "de preferință peste locurile tăiate",
+                   "cel mult 5 încercări", "Nu montezi nimic", "BROLL gata", "Sărite (sub 3 s)"):
+        assert phrase in sec, phrase
+
+
+def test_agent_monteaza_puts_broll_before_intro_and_chapters():
+    sec = _agent_section("Comanda `monteaza`")
+    apply_ = '--out "$RUN_DIR/curat-fara-broll.mp4" --map "$RUN_DIR/map.json"'
+    overlay = ('"$PY" "$SCRIPTS/broll.py" aplica --video "$RUN_DIR/curat-fara-broll.mp4" '
+               '--broll "$RUN_DIR/broll-aprobat.json" --map "$RUN_DIR/map.json" --dir "$BROLL_DIR" '
+               '--out "$RUN_DIR/curat.mp4"')
+    assert apply_ in sec and overlay in sec
+    assert sec.index(overlay) < sec.index("4. Capitolele.")
+    assert 'rm -f "$RUN_DIR/curat-fara-broll.mp4"' in sec
+    assert "`broll_dir` din `RUN_DIR/run.json`" in sec
+
+
+def test_agent_voice_without_broll_sound():
+    mont = _agent_section("Comanda `monteaza`")
+    assert '--voice-from "$RUN_DIR/curat-fara-broll.mp4" --intro "$RUN_DIR/render/intro.mp4"' in mont
+    assert "la `kind: short`, și `--voice-from \"$RUN_DIR/curat-fara-broll.mp4\"`" in mont
+    reels = _agent_section("Comanda `reels`")
+    assert '--voice-from "$RUN_DIR/curat-fara-broll.mp4" --start <start> --end <end>' in reels
+    assert "`reels/work/snapped_segments.json`" in reels

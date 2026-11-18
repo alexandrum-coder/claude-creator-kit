@@ -358,3 +358,80 @@ def test_skill_export_failure_keeps_the_run():
     assert "Dacă un export pică, montajul și reels-urile rămân" in sec
     assert "ce fișier lipsește" in sec
     assert "exporturile care lipsesc" in text
+
+
+# --- function 1, B-roll: the voice without the B-roll sound (D-14 (17), (20))
+
+def _av(path, dur, audio="sine", freq=440, size="320x240"):
+    args = ["-f", "lavfi", "-i", "testsrc=size=%s:rate=25:duration=%s" % (size, dur)]
+    if audio == "sine":
+        args += ["-f", "lavfi", "-i", "sine=frequency=%d:sample_rate=48000:duration=%s" % (freq, dur)]
+    elif audio == "silence":
+        args += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo:d=%s" % dur]
+    args += ["-pix_fmt", "yuv420p", "-c:v", "libx264", "-shortest"]
+    if audio:
+        args += ["-c:a", "aac"]
+    _ff(*args, str(path))
+    return path
+
+
+def _peak(path, start=None, end=None) -> float:
+    cmd = ["ffmpeg", "-hide_banner"]
+    if start is not None:
+        cmd += ["-ss", "%.3f" % start, "-to", "%.3f" % end]
+    r = subprocess.run(cmd + ["-i", str(path), "-af", "volumedetect", "-f", "null", "-"],
+                       capture_output=True, text=True)
+    m = re.search(r"max_volume: (-?[\d.]+|-inf) dB", r.stderr)
+    return -999.0 if not m or m.group(1) == "-inf" else float(m.group(1))
+
+
+def test_cli_stems_voice_from_the_clip_without_broll(tmp_path, capsys):
+    # Short: the picture comes from curat.mp4 (with the B-roll sound), the voice from curat-fara-broll.mp4
+    video = _av(tmp_path / "curat.mp4", 3, audio="sine")
+    clean = _av(tmp_path / "curat-fara-broll.mp4", 3, audio="silence")
+    assert exports.main(["stems", "--video", str(video), "--out-dir", str(tmp_path), "--name", "curat",
+                         "--voice-from", str(clean)]) == 0
+    res = json.loads(capsys.readouterr().out)
+    assert res["warnings"] == []
+    voice = tmp_path / "curat-voce.wav"
+    assert abs(float(_probe(voice)["format"]["duration"]) - 3.0) < 0.1
+    assert _peak(voice) < -80.0
+    assert _peak(video) > -30.0
+    assert [x["codec_type"] for x in _probe(tmp_path / "curat-fara-sunet.mp4")["streams"]] == ["video"]
+
+
+def test_cli_stems_voice_from_between_start_and_end_for_a_reel(tmp_path, capsys):
+    reel = _av(tmp_path / "short_01_ig.mp4", 2, audio="sine", size="240x320")
+    clean = _av(tmp_path / "curat-fara-broll.mp4", 6, audio="sine", freq=1000)
+    assert exports.main(["stems", "--video", str(reel), "--out-dir", str(tmp_path), "--name", "short_01_ig",
+                         "--voice-from", str(clean), "--start", "2.5", "--end", "4.5"]) == 0
+    capsys.readouterr()
+    voice = tmp_path / "short_01_ig-voce.wav"
+    assert abs(float(_probe(voice)["format"]["duration"]) - 2.0) < 0.05
+
+
+def test_cli_stems_voice_from_after_the_intro_sound_for_youtube(tmp_path, capsys):
+    # D-14 (20): the intro sound as today, then the voice from the clip without B-roll
+    intro = _av(tmp_path / "intro.mp4", 2, audio="sine")
+    video = _av(tmp_path / "youtube.mp4", 5, audio="sine")
+    clean = _av(tmp_path / "curat-fara-broll.mp4", 3, audio="silence")
+    assert exports.main(["stems", "--video", str(video), "--out-dir", str(tmp_path), "--name", "youtube",
+                         "--voice-from", str(clean), "--intro", str(intro)]) == 0
+    capsys.readouterr()
+    voice = tmp_path / "youtube-voce.wav"
+    assert abs(float(_probe(voice)["format"]["duration"]) - 5.0) < 0.1
+    assert _peak(voice, 0.2, 1.8) > -30.0
+    assert _peak(voice, 2.3, 4.8) < -80.0
+
+
+def test_cli_stems_intro_without_sound_is_silence(tmp_path, capsys):
+    intro = _av(tmp_path / "intro.mp4", 2, audio=None)
+    video = _av(tmp_path / "youtube.mp4", 5, audio="sine")
+    clean = _av(tmp_path / "curat-fara-broll.mp4", 3, audio="sine")
+    assert exports.main(["stems", "--video", str(video), "--out-dir", str(tmp_path), "--name", "youtube",
+                         "--voice-from", str(clean), "--intro", str(intro)]) == 0
+    capsys.readouterr()
+    voice = tmp_path / "youtube-voce.wav"
+    assert abs(float(_probe(voice)["format"]["duration"]) - 5.0) < 0.1
+    assert _peak(voice, 0.2, 1.8) < -80.0
+    assert _peak(voice, 2.3, 4.8) > -30.0
