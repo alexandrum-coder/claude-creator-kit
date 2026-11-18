@@ -246,6 +246,61 @@ def test_agent_keeps_intermediate_outputs_in_logs():
     assert "$RUN_DIR/logs/" in rules and "punct" in rules
 
 
+PROPUNE = lambda: section(AGENT, "## Comanda `propune`")  # noqa: E731
+
+
+def _run_json_block(tmp_path, args, profile=None, existing=None):
+    """F-2 (D-95): run the `propune` block that writes run.json on a fake run folder."""
+    home = tmp_path / "home"
+    (home / "profiles").mkdir(parents=True)
+    (home / "profiles" / "test.json").write_text(json.dumps(profile or {}), encoding="utf-8")
+    run = tmp_path / "run"
+    run.mkdir()
+    if existing is not None:
+        raw = existing if isinstance(existing, str) else json.dumps(existing)
+        (run / "run.json").write_text(raw, encoding="utf-8")
+        os.utime(run / "run.json", (1_000_000_000, 1_000_000_000))
+    code = code_block(PROPUNE(), "python", "# propune: run.json")
+    run_block(code, [run, "test", *args, SCRIPTS], home)
+    return (run / "run.json").read_text(encoding="utf-8"), (run / "run.json").stat().st_mtime
+
+
+def _block(tmp_path, args, **kw):
+    raw, _ = _run_json_block(tmp_path, args, **kw)
+    return json.loads(raw)
+
+
+def test_propune_writes_run_json_when_the_skill_did_not(tmp_path):
+    video = tmp_path / "x" / ".." / "clip mic.mp4"                       # stored as an absolute, normalised path
+    d = _block(tmp_path, [video, "demonstratii", "true"])
+    assert d == {"video": str((tmp_path / "clip mic.mp4").resolve()), "profile": "test", "clip_type": "demonstratii",
+                 "voiceover": True}
+
+
+def test_propune_only_fills_the_keys_the_skill_left_out(tmp_path):
+    existing = {"video": "/clipuri/a.mp4", "clip_type": "vorbit", "facebook": True, "kind": "lung"}
+    d = _block(tmp_path, [tmp_path / "b.mp4", "demonstratii", "false"], existing=existing)
+    assert d == dict(existing, profile="test", voiceover=False)
+
+
+def test_propune_leaves_a_complete_run_json_byte_for_byte(tmp_path):
+    # D-96: the skill's run.json (its own formatting and key order) is not rewritten when nothing is missing
+    skill = '{"video":"/clipuri/a.mp4","voiceover":false,"profile":"test","clip_type":"vorbit","kind":"lung"}'
+    raw, mtime = _run_json_block(tmp_path, [tmp_path / "b.mp4", "demonstratii", "true"], existing=skill)
+    assert raw == skill and mtime == 1_000_000_000
+
+
+def test_propune_takes_the_clip_type_from_the_profile_when_the_prompt_has_none(tmp_path):
+    d = _block(tmp_path, [tmp_path / "c.mp4", "", "false"], profile={"clip_type": "culise"})
+    assert d["clip_type"] == "culise" and d["voiceover"] is False
+
+
+def test_propune_writes_run_json_before_transcribing():
+    text = PROPUNE()
+    assert "run.json" in next(ln for ln in text.splitlines() if ln.startswith("Intrare:"))
+    assert text.index("# propune: run.json") < text.index('reels.py" transcribe')
+
+
 def test_plugin_version_is_0_2_0():
     data = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert data["version"] == "0.2.0"

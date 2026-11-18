@@ -70,7 +70,28 @@ except Exception: print("small")')
 
 ## Comanda `propune`
 
-Intrare: `VIDEO`, `TIP_CLIP`, `VOICEOVER`. Ieșire în `RUN_DIR`: `transcript.json`, `cuts-propuse.json`, `frames/`.
+Intrare: `VIDEO`, `TIP_CLIP`, `VOICEOVER`. Ieșire în `RUN_DIR`: `run.json`, `transcript.json`, `cuts-propuse.json`, `frames/`.
+
+Înainte de transcriere, completezi `RUN_DIR/run.json`, din care `monteaza` și `texte` citesc clipul și tipul lui când promptul nu le are. Rulezi blocul de mai jos cu `"$PY" - "$RUN_DIR" "$PROFIL" "$VIDEO" "<TIP_CLIP>" "<VOICEOVER>" "$SCRIPTS" <<'PYEOF'` … `PYEOF`. `TIP_CLIP` e șir gol dacă lipsește din prompt, iar `VOICEOVER` e `true` sau `false`. Blocul adaugă numai cheile care lipsesc: `video` (calea absolută), `profile`, `clip_type` (din prompt sau, dacă lipsește, din profil) și `voiceover`. Un `run.json` scris de skill rămâne neschimbat.
+
+   ```python
+   # propune: run.json
+   import json, sys
+   from pathlib import Path
+   run, profil, video, tip, voiceover, scripts = sys.argv[1:7]
+   f = Path(run) / "run.json"
+   d = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+   if not tip:
+       sys.path.insert(0, scripts)
+       import airtime_config as c
+       tip = c.load_profile(profil).get("clip_type")
+   new = {"video": str(Path(video).resolve()), "profile": profil, "clip_type": tip, "voiceover": voiceover == "true"}
+   added = sorted(k for k, v in new.items() if k not in d and v is not None)
+   if added:  # nothing missing: the skill's run.json stays byte for byte
+       d.update({k: new[k] for k in added})
+       f.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+   print(json.dumps({"run_json_adaugat": added}))
+   ```
 
 1. Transcrie clipul original:
    `"$PY" "$SCRIPTS/reels.py" transcribe --video "$VIDEO" --out "$RUN_DIR/transcript.json" --model "$MODEL"`
