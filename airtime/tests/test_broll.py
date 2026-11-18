@@ -262,3 +262,38 @@ def test_aplica_warns_when_hdr_broll_cannot_be_converted(tmp_path, monkeypatch):
     monkeypatch.setattr(broll, "has_filter", lambda name: False)
     res = broll.aplica(curat, table, m, d, tmp_path / "curat.mp4")
     assert silences.HDR_WARNING in res["warnings"]
+
+
+# --- after the 159f27e checkpoint (D-14 (22))
+
+def test_aplica_warns_about_a_row_that_no_longer_fits(tmp_path):
+    d, curat, m, table = _setup_overlay(tmp_path)
+    rows = json.loads(table.read_text())["broll"]
+    rows.append(_row(3.0, "rosu.mov", dur=3.0, id=2))        # original 3.0 falls in the real cut 2-4
+    table.write_text(json.dumps({"broll": rows}))
+    res = broll.aplica(curat, table, m, d, tmp_path / "curat.mp4")
+    assert res["inserts"] == 1
+    assert any("rândul 2" in w and "nu s-a pus" in w for w in res["warnings"])
+
+
+def test_aplica_with_no_row_left_copies_the_clip_without_broll(tmp_path):
+    d, curat, m, table = _setup_overlay(tmp_path)
+    table.write_text(json.dumps({"broll": [_row(3.0, "rosu.mov", dur=3.0)]}))
+    out = tmp_path / "curat.mp4"
+    res = broll.aplica(curat, table, m, d, out)
+    assert res["inserts"] == 0
+    assert out.read_bytes() == curat.read_bytes()
+    assert res["warnings"]
+
+
+def test_cli_verifica_excludes_the_spoken_clip(tmp_path, capsys):
+    d = tmp_path / "dosar"
+    d.mkdir()
+    video = _clip(d / "vorbit.mp4", 30, audio="sine")
+    cuts = tmp_path / "cuts.json"
+    cuts.write_text(json.dumps({"cuts": []}))
+    table = tmp_path / "broll-propus.json"
+    table.write_text(json.dumps({"broll": [_row(6.0, "vorbit.mp4", dur=3.0)]}))
+    assert broll.main(["verifica", "--broll", str(table), "--cuts", str(cuts), "--video", str(video),
+                       "--dir", str(d), "--exclude", str(video)]) == 2
+    assert any("vorbit.mp4" in e for e in json.loads(capsys.readouterr().out)["errors"])

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -187,11 +188,20 @@ def _load(path):
 def aplica(video, table, map_json, folder, out) -> dict:
     video, folder, out = Path(video), Path(folder), Path(out)
     keep = [(float(a), float(b)) for a, b in _load(map_json)["keep"]]
-    rows = place(_rows(_load(table)), keep)
-    if not rows:
+    table_rows = normalize(_rows(_load(table)))
+    if not table_rows:
         raise ValueError("tabelul B-roll e gol")
-    main = _probe_full(video)
     warnings, inserts = [], []
+    for r in table_rows:      # D-14 (22): a row that no longer fits is announced, never dropped silently
+        if remap(float(r["t0"]), keep) is None:
+            warnings.append("B-roll-ul de pe rândul %s (%s) nu s-a pus: momentul cade într-o tăietură"
+                            % (r.get("id", "?"), r.get("src")))
+    rows = place(table_rows, keep)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        shutil.copyfile(video, out)
+        return {"inserts": 0, "curat": str(out), "warnings": warnings}
+    main = _probe_full(video)
     for r in rows:
         src = folder / r["src"]
         info = _probe_full(src)
@@ -209,7 +219,6 @@ def aplica(video, table, map_json, folder, out) -> dict:
     if maps["audio"]:
         cmd += ["-map", maps["audio"], "-c:a", "aac"]
     cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
-    out.parent.mkdir(parents=True, exist_ok=True)
     _run(cmd)
     res = {"inserts": len(inserts), "curat": str(out)}
     if warnings:
@@ -239,6 +248,7 @@ def main(argv=None) -> int:
     p.add_argument("--cuts", required=True)
     p.add_argument("--video", required=True)
     p.add_argument("--dir", required=True)
+    p.add_argument("--exclude", help="clipul vorbit, când stă în același dosar")
     p = sub.add_parser("aplica")
     p.add_argument("--video", required=True)
     p.add_argument("--broll", required=True)
@@ -257,7 +267,8 @@ def main(argv=None) -> int:
         elif a.cmd == "verifica":
             cuts = _load(a.cuts)
             cuts = cuts["cuts"] if isinstance(cuts, dict) else cuts
-            clips = {p.name: _probe_full(p)["duration"] for p in list_clips(a.dir)}
+            skip = Path(a.exclude).resolve() if a.exclude else None
+            clips = {p.name: _probe_full(p)["duration"] for p in list_clips(a.dir) if p.resolve() != skip}
             errors = verifica(_rows(_load(a.broll)), cuts, probe_duration(a.video), clips)
             if errors:
                 _emit({"errors": errors})

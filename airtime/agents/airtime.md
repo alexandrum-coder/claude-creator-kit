@@ -110,7 +110,7 @@ Propune tabelul B-roll (clipuri scurte puse peste imagine cât coachul vorbește
    ```
    `src_in` = de unde începe bucata în clipul B-roll; `volum` 0.2 = sunetul B-roll foarte încet, sub voce (între 0 și 1); `cuvinte` = ce se spune atunci; `motiv` = ce se vede și de ce se potrivește.
 5. Verifică:
-   `"$PY" "$SCRIPTS/broll.py" verifica --broll "$RUN_DIR/broll-propus.json" --cuts "$RUN_DIR/cuts-aprobate.json" --video "$VIDEO" --dir "$BROLL_DIR"`
+   `"$PY" "$SCRIPTS/broll.py" verifica --broll "$RUN_DIR/broll-propus.json" --cuts "$RUN_DIR/cuts-aprobate.json" --video "$VIDEO" --dir "$BROLL_DIR" --exclude "$VIDEO"`
    - Cod 0: `{"ok": true}`.
    - Cod 2: `{"errors": [...]}`; corectezi rândurile și rulezi iar, cel mult 5 încercări; dacă tot pică, `EROARE: broll - <erorile rămase>`.
    - Cod 1: `EROARE: broll - <textul din error>`.
@@ -197,6 +197,7 @@ Cu `DOAR_REELS: true`:
 ```
 MONTEAZA gata (doar reels)
 Tăieturi aplicate: <n>; clip tăiat: <RUN_DIR>/curat.mp4 (<mm:ss>, <W>x<H>)
+B-roll: <n> inserții   (numai cu B-roll)
 Transcript tăiat: <RUN_DIR>/transcript-curat.json
 Avertismente: <warnings de la apply, pe scurt>   (numai dacă există)
 ```

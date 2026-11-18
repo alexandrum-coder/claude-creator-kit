@@ -500,3 +500,14 @@ def test_agent_voice_without_broll_sound():
     reels = _agent_section("Comanda `reels`")
     assert '--voice-from "$RUN_DIR/curat-fara-broll.mp4" --start <start> --end <end>' in reels
     assert "`reels/work/snapped_segments.json`" in reels
+
+
+def test_agent_broll_verifica_excludes_the_spoken_clip():
+    sec = _agent_section("Comanda `broll`")
+    assert ('--video "$VIDEO" --dir "$BROLL_DIR" --exclude "$VIDEO"') in sec
+
+
+def test_agent_monteaza_only_reels_block_counts_broll():
+    sec = _agent_section("Comanda `monteaza`")
+    block = sec.split("```\nMONTEAZA gata (doar reels)\n")[1].split("```")[0]
+    assert "B-roll: <n> inserții   (numai cu B-roll)" in block
